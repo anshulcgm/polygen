@@ -1,0 +1,10 @@
+renderings/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+*.txt
+*.err
+*.out
+*.png
+*.pth
+*.ckpt
