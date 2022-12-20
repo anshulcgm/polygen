@@ -7,8 +7,6 @@ from typing import List, Tuple, Dict
 import networkx as nx
 import numpy as np
 import torch
-import torch.nn.functional as F
-import torch.optim as optim
 
 from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
