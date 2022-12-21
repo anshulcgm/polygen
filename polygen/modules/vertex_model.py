@@ -246,7 +246,11 @@ class VertexModel(pl.LightningModule):
         return vertex_loss
 
     def configure_optimizers(self) -> Dict[str, Any]:
-        """Method to create optimizer and learning rate scheduler"""
+        """Method to create optimizer and learning rate scheduler
+        
+        Returns:
+            dict: A dictionary with optimizer and learning rate scheduler
+        """
         vertex_model_optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
         vertex_model_scheduler = torch.optim.lr_scheduler.StepLR(
             vertex_model_optimizer, step_size=5000, gamma=0.9995
