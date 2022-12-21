@@ -67,7 +67,7 @@ class PolygenEncoderLayer(TransformerEncoderLayer):
         Args:
             src: A Tensor of shape [sequence_length, batch_size, embed_size]. Input Tensor to the TransformerEncoder
             src_mask: A Tensor of shape [sequence_length, sequence_length]. The mask for the input sequence
-            src_key_padding_mask: A Tensor of shape [sequence_length, batch_size]. Tells attention which 
+            src_key_padding_mask: A Tensor of shape [sequence_length, batch_size]. Tells attention which
                                   aspects of the input sequence to ignore due to them being padding
 
         Returns:

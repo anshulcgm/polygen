@@ -13,7 +13,7 @@ def top_k_logits(logits: torch.Tensor, k: int) -> torch.Tensor:
     Args:
         logits: tensor representing network predictions
         k: how many logits to not filter out
-    
+
     Returns:
         logits: logits with top-k logits remaining intact
     """
@@ -31,7 +31,7 @@ def top_k_logits(logits: torch.Tensor, k: int) -> torch.Tensor:
 
 def top_p_logits(logits: torch.Tensor, p: float) -> torch.Tensor:
     """Masks logits using nucleus (top-p) sampling
-    
+
     Args:
         logits: Network predictions
         top-p: What probability of the predictions we want to keep unmasked

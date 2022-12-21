@@ -8,6 +8,7 @@ import pytorch_lightning as pl
 
 from .utils import get_clones
 
+
 class PolygenDecoderLayer(nn.TransformerDecoderLayer):
     """
     Decoder module as described in Vaswani et al. 2017. Uses masked self-attention and non-masked cross attention for sequential context modules.
@@ -233,8 +234,8 @@ class TransformerDecoder(pl.LightningModule):
         Returns:
             cache: A list of dictionaries where each dictionary contains a key and value for a specific Decoder Layer.
         """
-        k = torch.zeros([0, batch_size, self.hidden_size], device = self.device)
-        v = torch.zeros([0, batch_size, self.hidden_size], device = self.device)
+        k = torch.zeros([0, batch_size, self.hidden_size], device=self.device)
+        v = torch.zeros([0, batch_size, self.hidden_size], device=self.device)
         cache = [{"k": k, "v": v} for _ in range(self.num_layers)]
         return cache
 
@@ -247,7 +248,7 @@ class TransformerDecoder(pl.LightningModule):
         Returns:
             mask: A lower triangular matrix of shape [sequence_length, sequence_length].
         """
-        mask = (torch.triu(torch.ones(sz, sz, device = self.device)) == 1).transpose(0, 1)
+        mask = (torch.triu(torch.ones(sz, sz, device=self.device)) == 1).transpose(0, 1)
         mask = (
             mask.float()
             .masked_fill(mask == 0, float("-inf"))

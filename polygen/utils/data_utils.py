@@ -171,10 +171,10 @@ def dequantize_verts(
 
 def face_to_cycles(faces: List[int]) -> List[int]:
     """Find cycles in faces list
-    
+
     Args:
         faces: List of vertex indices representing connectivity
-    
+
     Returns:
         cycle_basis: All cycles in faces graph
     """
@@ -190,7 +190,7 @@ def flatten_faces(faces: List[List[int]]) -> np.ndarray:
 
     Args:
         faces: List of list of vertex indices
-    
+
     Returns:
         flattened_faces: A 1D list of faces with stop tokens indicating when to move to the next face
     """
@@ -207,7 +207,7 @@ def unflatten_faces(flat_faces: np.ndarray) -> List[List[int]]:
 
     Args:
         flat_faces: A 1D list of vertex indices with stopping tokens
-    
+
     Returns:
         faces: A 2D list of face indices where each face is its own list
     """
@@ -231,7 +231,7 @@ def center_vertices(vertices: np.ndarray) -> np.ndarray:
 
     Args:
         vertices: np array of shape (num_vertices, 3)
-    
+
     Returns:
         centered_vertices: centered vertices in array of shape (num_vertices, 3)
     """
@@ -271,7 +271,7 @@ def quantize_process_mesh(
         faces: Unflattened faces
         tris: List of triangles
         quantization_bits: number of quantization bits
-    
+
     Returns:
         vertices: processed vertices
         faces: processed faces
@@ -339,7 +339,7 @@ def load_process_mesh(
     Args:
         mesh_obj_path: string representing path to obj file
         quantization_bits: number of quantization bits
-    
+
     Returns:
         mesh: A dictionary that contains the processed vertices and faces
     """
@@ -379,7 +379,7 @@ def plot_meshes(
     n_cols: int = 4,
 ) -> None:
     """Plots mesh data using matplotlib
-    
+
     Args:
         mesh_list: List of different 3D objects to plot
         ax_lims: limits on x-axes

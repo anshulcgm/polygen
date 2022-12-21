@@ -1,0 +1,19 @@
+Metadata-Version: 1.2
+Name: polygen
+Version: 0.1.0
+Summary: Package to access polygen modules
+Home-page: UNKNOWN
+Author: Anshul Ahluwalia
+Author-email: 
+License: APACHE
+Description: UNKNOWN
+Keywords: computer-vision
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: APACHE License
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: MacOS
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: >= 3.6
