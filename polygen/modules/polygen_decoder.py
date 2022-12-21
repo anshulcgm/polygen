@@ -1,10 +1,12 @@
+from typing import Dict, Optional, Tuple
+import pdb
+
 import torch
 import torch.nn as nn
 from torch.nn import MultiheadAttention, Linear, Dropout, LayerNorm, ReLU, Parameter
 import pytorch_lightning as pl
-from .helper_methods import get_clones
-from typing import Dict, Optional, Tuple
-import pdb
+
+from .utils import get_clones
 
 class PolygenDecoderLayer(nn.TransformerDecoderLayer):
     """
