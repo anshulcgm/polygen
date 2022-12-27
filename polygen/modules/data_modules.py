@@ -36,9 +36,13 @@ def collate_vertex_model_batch(
             vertices = random_shift(vertices)
         initial_vertex_size = vertices.shape[0]
         padding_size = max_vertices - initial_vertex_size
-        vertices_permuted = torch.stack([vertices[..., 2], vertices[..., 1], vertices[..., 0]], dim=-1)
+        vertices_permuted = torch.stack(
+            [vertices[..., 2], vertices[..., 1], vertices[..., 0]], dim=-1
+        )
         curr_vertices_flat = vertices_permuted.reshape([-1])
-        vertices_flat[i] = F.pad(curr_vertices_flat + 1, [0, padding_size * 3 + 1])[None]
+        vertices_flat[i] = F.pad(curr_vertices_flat + 1, [0, padding_size * 3 + 1])[
+            None
+        ]
         class_labels[i] = torch.Tensor([element["class_label"]])
         vertices_flat_mask[i] = torch.zeros_like(vertices_flat[i], dtype=torch.float32)
         vertices_flat_mask[i, : initial_vertex_size * 3 + 1] = 1
@@ -102,7 +106,9 @@ def collate_face_model_batch(
         shuffled_faces[i] = F.pad(curr_faces, [0, face_padding_size, 0, 0])
         curr_verts = helper_methods.dequantize_verts(vertices, quantization_bits)
         face_vertices[i] = F.pad(curr_verts, [0, 0, 0, vertex_padding_size])
-        face_vertices_mask[i] = torch.zeros_like(face_vertices[i][..., 0], dtype=torch.float32)
+        face_vertices_mask[i] = torch.zeros_like(
+            face_vertices[i][..., 0], dtype=torch.float32
+        )
         face_vertices_mask[i, :num_vertices] = 1
         faces_mask[i] = torch.zeros_like(shuffled_faces[i], dtype=torch.float32)
         faces_mask[i, : initial_faces_size + 1] = 1
@@ -120,7 +126,9 @@ class ShapenetDataset(Dataset):
             training_dir: Root folder of shapenet dataset
         """
         self.training_dir = training_dir
-        self.all_files = glob.glob(f"{self.training_dir}/*/*/models/model_normalized.obj")
+        self.all_files = glob.glob(
+            f"{self.training_dir}/*/*/models/model_normalized.obj"
+        )
         self.label_dict = {}
         for i, class_label in enumerate(os.listdir(training_dir)):
             self.label_dict[class_label] = i

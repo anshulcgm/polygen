@@ -32,11 +32,15 @@ def random_shift(vertices: torch.Tensor, shift_factor: float = 0.25) -> torch.Te
 
     max_positive_shift = (255 - torch.max(vertices, dim=0)[0]).to(torch.float32)
     positive_condition_tensor = max_positive_shift > 1e-9
-    max_positive_shift = torch.where(positive_condition_tensor, max_positive_shift, torch.Tensor([1e-9, 1e-9, 1e-9]))
+    max_positive_shift = torch.where(
+        positive_condition_tensor, max_positive_shift, torch.Tensor([1e-9, 1e-9, 1e-9])
+    )
 
     max_negative_shift = torch.min(vertices, dim=0)[0].to(torch.float32)
     negative_condition_tensor = max_negative_shift > 1e-9
-    max_negative_shift = torch.where(negative_condition_tensor, max_negative_shift, torch.Tensor([1e-9, 1e-9, 1e-9]))
+    max_negative_shift = torch.where(
+        negative_condition_tensor, max_negative_shift, torch.Tensor([1e-9, 1e-9, 1e-9])
+    )
     normal_dist = TruncatedNormal(
         loc=torch.zeros((1, 3)),
         scale=shift_factor * 255,
@@ -47,6 +51,7 @@ def random_shift(vertices: torch.Tensor, shift_factor: float = 0.25) -> torch.Te
     vertices += shift
     return vertices
 
+
 def quantize_verts(verts: torch.Tensor, n_bits: int = 8) -> torch.Tensor:
     """Convert floating point vertices to discrete values in [0, 2 ** n_bits - 1]
 
@@ -56,12 +61,14 @@ def quantize_verts(verts: torch.Tensor, n_bits: int = 8) -> torch.Tensor:
     Returns:
         quantized_verts: np array representing quantized verts
     """
-    range_quantize = 2**n_bits - 1
+    range_quantize = 2 ** n_bits - 1
     quantized_verts = (verts - MIN_RANGE) * range_quantize / (MAX_RANGE - MIN_RANGE)
     return quantized_verts.to(torch.int32)
 
 
-def dequantize_verts(verts: torch.Tensor, n_bits: int = 8, add_noise: bool = False) -> torch.Tensor:
+def dequantize_verts(
+    verts: torch.Tensor, n_bits: int = 8, add_noise: bool = False
+) -> torch.Tensor:
     """Undoes quantization process and converts from [0, 2 ** n_bits - 1] to floats
 
     Args:
@@ -71,10 +78,12 @@ def dequantize_verts(verts: torch.Tensor, n_bits: int = 8, add_noise: bool = Fal
     Returns:
         dequantized_verts: np array representing floating point verts
     """
-    range_quantize = 2**n_bits - 1
+    range_quantize = 2 ** n_bits - 1
     dequantized_verts = verts * (MAX_RANGE - MIN_RANGE) / range_quantize + MIN_RANGE
     if add_noise:
-        dequantized_verts = torch.rand(size=dequantized_verts.shape) * (1 / range_quantize)
+        dequantized_verts = torch.rand(size=dequantized_verts.shape) * (
+            1 / range_quantize
+        )
     return dequantized_verts
 
 
@@ -144,7 +153,7 @@ def center_vertices(vertices: torch.Tensor) -> torch.Tensor:
     Returns:
         centered_vertices: centered vertices in array of shape (num_vertices, 3)
     """
-    vert_min, _= torch.min(vertices, dim=0)
+    vert_min, _ = torch.min(vertices, dim=0)
     vert_max, _ = torch.max(vertices, dim=0)
     vert_center = 0.5 * (vert_min + vert_max)
     centered_vertices = vertices - vert_center
@@ -162,16 +171,17 @@ def normalize_vertices_scale(vertices: torch.Tensor) -> torch.Tensor:
     vert_min, _ = torch.min(vertices, dim=0)
     vert_max, _ = torch.max(vertices, dim=0)
     extents = vert_max - vert_min
-    scale = torch.sqrt(torch.sum(extents**2))
+    scale = torch.sqrt(torch.sum(extents ** 2))
     scaled_vertices = vertices / scale
     return scaled_vertices
+
 
 def torch_lexsort(a: torch.Tensor, dim=-1) -> torch.Tensor:
     """Pytorch implementation of np.lexsort (https://discuss.pytorch.org/t/numpy-lexsort-equivalent-in-pytorch/47850/3)
 
     Args:
         a: Tensor of shape (n, m)
-    
+
     Returns:
         lex_sorted_tensor: Tensor of shape (n, m) after lexsort has been applied
     """
@@ -180,6 +190,7 @@ def torch_lexsort(a: torch.Tensor, dim=-1) -> torch.Tensor:
     assert a.ndim == 2
     a_unq, inv = torch.unique(a.flip(0), dim=dim, sorted=True, return_inverse=True)
     return torch.argsort(inv)
+
 
 def quantize_process_mesh(
     vertices: torch.Tensor,
@@ -241,15 +252,20 @@ def quantize_process_mesh(
 
     # After removing degenerate faces some vertices are now unreferenced
     # Remove these
-    vert_connected = torch.eq(torch.arange(num_verts)[:, None], torch.hstack(faces)[None]).any(axis=-1)
+    vert_connected = torch.eq(
+        torch.arange(num_verts)[:, None], torch.hstack(faces)[None]
+    ).any(axis=-1)
     vertices = vertices[vert_connected]
 
     # Re-index faces and tris to re-ordered vertices.
-    vert_indices = torch.arange(num_verts) - torch.cumsum(1 - vert_connected.to(torch.int32))
+    vert_indices = torch.arange(num_verts) - torch.cumsum(
+        1 - vert_connected.to(torch.int32)
+    )
     faces = [vert_indices[f].tolist() for f in faces]
     if tris is not None:
         tris = torch.Tensor([vert_indices[t].tolist() for t in tris])
     return vertices, faces, tris
+
 
 def plot_meshes(
     mesh_list: List[Dict[str, np.ndarray]],
@@ -294,7 +310,9 @@ def plot_meshes(
 
         if mesh["faces"] is not None:
             if mesh["vertices_conditional"] is not None:
-                face_verts = np.concatenate([mesh["vertices_conditional"], mesh["vertices"]], axis=0)
+                face_verts = np.concatenate(
+                    [mesh["vertices_conditional"], mesh["vertices"]], axis=0
+                )
             else:
                 face_verts = mesh["vertices"]
             collection = []
@@ -355,7 +373,11 @@ def plot_meshes(
         if mesh["class_name"] is not None:
             display_string += "Synset: {}".format(mesh["class_name"])
         if mesh["pointcloud"] is not None:
-            display_string += "Num. pointcloud: {}\n".format(mesh["pointcloud"].shape[0])
+            display_string += "Num. pointcloud: {}\n".format(
+                mesh["pointcloud"].shape[0]
+            )
         ax.text2D(0.05, 0.8, display_string, transform=ax.transAxes)
-    plt.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0, wspace=0.025, hspace=0.025)
+    plt.subplots_adjust(
+        left=0.0, right=1.0, bottom=0.0, top=1.0, wspace=0.025, hspace=0.025
+    )
     plt.show()

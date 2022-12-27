@@ -37,7 +37,9 @@ class PolygenEncoderLayer(TransformerEncoderLayer):
             dropout: Dropout rate applied after ReLU in each connected layer.
             re_zero: If True, Alpha scale residuals with zero initialization.
         """
-        super(PolygenEncoderLayer, self).__init__(d_model, nhead, dim_feedforward=dim_feedforward, dropout=dropout)
+        super(PolygenEncoderLayer, self).__init__(
+            d_model, nhead, dim_feedforward=dim_feedforward, dropout=dropout
+        )
         self.self_attn = MultiheadAttention(d_model, nhead, dropout=dropout)
 
         self.linear1 = Linear(d_model, dim_feedforward)
@@ -72,7 +74,9 @@ class PolygenEncoderLayer(TransformerEncoderLayer):
             src: A Tensor of shape [sequence_length, batch_size, embed_size]
         """
         src2 = self.norm1(src)
-        src2 = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
+        src2 = self.self_attn(
+            src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask
+        )[0]
         if self.re_zero:
             src2 = src2 * self.alpha
         src2 = self.dropout(src2)

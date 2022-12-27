@@ -50,17 +50,29 @@ class FaceModel(pl.LightningModule):
         self.encoder = PolygenEncoder(**encoder_config)
         self.decoder = TransformerDecoder(**decoder_config)
 
-        self.class_embedder = nn.Embedding(self.num_classes, embedding_dim=self.embedding_dim)
-        self.coord0_embedder = nn.Embedding(2**self.quantization_bits, self.embedding_dim)
-        self.coord1_embedder = nn.Embedding(2**self.quantization_bits, self.embedding_dim)
-        self.coord2_embedder = nn.Embedding(2**self.quantization_bits, self.embedding_dim)
+        self.class_embedder = nn.Embedding(
+            self.num_classes, embedding_dim=self.embedding_dim
+        )
+        self.coord0_embedder = nn.Embedding(
+            2 ** self.quantization_bits, self.embedding_dim
+        )
+        self.coord1_embedder = nn.Embedding(
+            2 ** self.quantization_bits, self.embedding_dim
+        )
+        self.coord2_embedder = nn.Embedding(
+            2 ** self.quantization_bits, self.embedding_dim
+        )
 
         self.pos_embedder = nn.Embedding(self.max_seq_length, self.embedding_dim)
 
         self.linear_layer = nn.Linear(self.embedding_dim, self.embedding_dim)
-        stopping_embeddings_tensor = torch.randn([1, 2, self.embedding_dim], device=self.device)
+        stopping_embeddings_tensor = torch.randn(
+            [1, 2, self.embedding_dim], device=self.device
+        )
         self.stopping_embeddings = nn.Parameter(stopping_embeddings_tensor)
-        zero_embeddings_tensor = torch.randn([1, 1, self.embedding_dim], device=self.device)
+        zero_embeddings_tensor = torch.randn(
+            [1, 1, self.embedding_dim], device=self.device
+        )
         self.zero_embed = nn.Parameter(zero_embeddings_tensor)
 
         self.automatic_optimization = False
@@ -94,11 +106,14 @@ class FaceModel(pl.LightningModule):
         else:
             global_context_embedding = None
 
-        vertex_embeddings = self._embed_vertices(context["vertices"], context["vertices_mask"])
+        vertex_embeddings = self._embed_vertices(
+            context["vertices"], context["vertices_mask"]
+        )
         if self.decoder_cross_attention:
             # print("Creating sequential context embeddings")
             sequential_context_embeddings = (
-                vertex_embeddings * F.pad(context["vertices_mask"], [2, 0, 0, 0], value=1)[..., None]
+                vertex_embeddings
+                * F.pad(context["vertices_mask"], [2, 0, 0, 0], value=1)[..., None]
             )
         else:
             sequential_context_embeddings = None
@@ -109,7 +124,9 @@ class FaceModel(pl.LightningModule):
         )
         # return (torch.ones_like(vertex_embeddings, dtype = torch.float32), None, torch.ones_like(sequential_context_embeddings, dtype = torch.float32))
 
-    def _embed_vertices(self, vertices: torch.Tensor, vertices_mask: torch.Tensor) -> torch.Tensor:
+    def _embed_vertices(
+        self, vertices: torch.Tensor, vertices_mask: torch.Tensor
+    ) -> torch.Tensor:
         """Provides value embeddings for vertices
 
         Args:
@@ -119,10 +136,11 @@ class FaceModel(pl.LightningModule):
         Returns:
             vertex_embeddings: A tensor of shape [batch_size, num_vertices + 2, embed_size]. Represents vertex embeddings with concatenated learnt stopping tokens.
         """
-
         if self.use_discrete_vertex_embeddings:
             vertex_embeddings = 0.0
-            verts_quantized = quantize_verts(vertices, self.quantization_bits).to(torch.long)
+            verts_quantized = quantize_verts(vertices, self.quantization_bits).to(
+                torch.long
+            )
             vertex_embeddings = (
                 self.coord0_embedder(verts_quantized[..., 0])
                 + self.coord1_embedder(verts_quantized[..., 1])
@@ -130,13 +148,21 @@ class FaceModel(pl.LightningModule):
             )
 
         else:
-            raise Exception("Support for continuous vertex embeddings doesn't exist yet")
+            raise Exception(
+                "Support for continuous vertex embeddings doesn't exist yet"
+            )
 
         vertex_embeddings = vertex_embeddings * vertices_mask[..., None]
-        stopping_embeddings = torch.repeat_interleave(self.stopping_embeddings, vertices.shape[0], dim=0)
-        vertex_embeddings = torch.cat([stopping_embeddings, vertex_embeddings.to(torch.float32)], dim=1)
+        stopping_embeddings = torch.repeat_interleave(
+            self.stopping_embeddings, vertices.shape[0], dim=0
+        )
+        vertex_embeddings = torch.cat(
+            [stopping_embeddings, vertex_embeddings.to(torch.float32)], dim=1
+        )
 
-        vertex_embeddings = self.encoder(vertex_embeddings.transpose(0, 1)).transpose(0, 1)
+        vertex_embeddings = self.encoder(vertex_embeddings.transpose(0, 1)).transpose(
+            0, 1
+        )
         return vertex_embeddings
 
     def _embed_inputs(
@@ -168,17 +194,25 @@ class FaceModel(pl.LightningModule):
             face_embeddings[i] = vertex_embeddings[i, faces_long[i]]
 
         face_embeddings = face_embeddings.type_as(faces_long)
-        pos_embeddings = self.pos_embedder(torch.arange(faces_long.shape[1]).type_as(faces_long)).type_as(faces_long)
+        pos_embeddings = self.pos_embedder(
+            torch.arange(faces_long.shape[1]).type_as(faces_long)
+        ).type_as(faces_long)
 
         batch_size = face_embeddings.shape[0]
 
         if global_context_embedding is None:
-            zero_embed_tiled = torch.repeat_interleave(self.zero_embed, batch_size, dim=0)
+            zero_embed_tiled = torch.repeat_interleave(
+                self.zero_embed, batch_size, dim=0
+            )
         else:
             zero_embed_tiled = global_context_embedding[:, None]
 
         embeddings = face_embeddings + pos_embeddings
-        embeddings = torch.cat([zero_embed_tiled, embeddings], dim=1).transpose(0, 1).to(torch.float32)
+        embeddings = (
+            torch.cat([zero_embed_tiled, embeddings], dim=1)
+            .transpose(0, 1)
+            .to(torch.float32)
+        )
 
         return embeddings
 
@@ -237,14 +271,18 @@ class FaceModel(pl.LightningModule):
         decoder_outputs = self.decoder(
             cached_decoder_inputs,
             cache=cache,
-            sequential_context_embeddings=sequential_context_embeddings.transpose(0, 1).type_as(faces_long),
+            sequential_context_embeddings=sequential_context_embeddings.transpose(
+                0, 1
+            ).type_as(faces_long),
         )
 
         pred_pointers = self._project_to_pointers(decoder_outputs.transpose(0, 1))
 
         num_dimensions = len(vertex_embeddings.shape)
         penultimate_dim, last_dim = num_dimensions - 2, num_dimensions - 1
-        vertex_embeddings_transposed = vertex_embeddings.transpose(penultimate_dim, last_dim)
+        vertex_embeddings_transposed = vertex_embeddings.transpose(
+            penultimate_dim, last_dim
+        )
 
         logits = torch.matmul(pred_pointers, vertex_embeddings_transposed)
         logits = logits / math.sqrt(self.embedding_dim)
@@ -270,7 +308,6 @@ class FaceModel(pl.LightningModule):
         Returns:
             logits: Logits of shape [batch_size, sequence_length, num_vertices] that can be used to create a categorical distribution over vertex indices.
         """
-
         vertex_embeddings, global_context, seq_context = self._prepare_context(batch)
         logits = self._create_dist(
             vertex_embeddings,
@@ -281,7 +318,9 @@ class FaceModel(pl.LightningModule):
         )
         return logits
 
-    def training_step(self, face_model_batch: Dict[str, Any], batch_idx: int) -> torch.float32:
+    def training_step(
+        self, face_model_batch: Dict[str, Any], batch_idx: int
+    ) -> torch.float32:
         """Pytorch Lightning training step method
 
         Args:
@@ -296,7 +335,10 @@ class FaceModel(pl.LightningModule):
         face_model_optimizer.zero_grad()
         face_logits = self(face_model_batch)
         face_pred_dist = torch.distributions.categorical.Categorical(logits=face_logits)
-        face_loss = -torch.sum(face_pred_dist.log_prob(face_model_batch["faces"]) * face_model_batch["faces_mask"])
+        face_loss = -torch.sum(
+            face_pred_dist.log_prob(face_model_batch["faces"])
+            * face_model_batch["faces_mask"]
+        )
         self.log("train_loss", face_loss)
         self.manual_backward(face_loss)
         face_model_optimizer.step()
@@ -315,8 +357,12 @@ class FaceModel(pl.LightningModule):
 
         with torch.no_grad():
             face_logits = self(val_batch)
-            face_pred_dist = torch.distributions.categorical.Categorical(logits=face_logits)
-            face_loss = -torch.sum(face_pred_dist.log_prob(val_batch["faces"]) * val_batch["faces_mask"])
+            face_pred_dist = torch.distributions.categorical.Categorical(
+                logits=face_logits
+            )
+            face_loss = -torch.sum(
+                face_pred_dist.log_prob(val_batch["faces"]) * val_batch["faces_mask"]
+            )
         self.log("val_loss", face_loss)
         return face_loss
 
@@ -327,7 +373,9 @@ class FaceModel(pl.LightningModule):
             dict: Dictionary with optimizer and lr scheduler
         """
         face_model_optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
-        face_model_scheduler = torch.optim.lr_scheduler.StepLR(face_model_optimizer, step_size=5000, gamma=0.999)
+        face_model_scheduler = torch.optim.lr_scheduler.StepLR(
+            face_model_optimizer, step_size=5000, gamma=0.999
+        )
         return {"optimizer": face_model_optimizer, "lr_scheduler": face_model_scheduler}
 
     def sample(
@@ -359,7 +407,9 @@ class FaceModel(pl.LightningModule):
         vertex_embeddings, global_context, seq_context = self._prepare_context(context)
         num_samples = vertex_embeddings.shape[0]
 
-        def _loop_body(i: int, samples: torch.Tensor, cache: Dict) -> Tuple[int, torch.Tensor]:
+        def _loop_body(
+            i: int, samples: torch.Tensor, cache: Dict
+        ) -> Tuple[int, torch.Tensor]:
             """While-loop body for autoregression calculation.
 
             Args:
@@ -408,7 +458,9 @@ class FaceModel(pl.LightningModule):
         while _stopping_cond(samples) and j < max_sample_length:
             j, samples = _loop_body(j, samples, cache)
 
-        completed_samples_boolean = samples == 0  # Checks for stopping token in every row of sampled faces
+        completed_samples_boolean = (
+            samples == 0
+        )  # Checks for stopping token in every row of sampled faces
         complete_samples = torch.any(
             completed_samples_boolean, dim=-1
         )  # Tells us which samples are complete and which aren't
@@ -418,18 +470,26 @@ class FaceModel(pl.LightningModule):
             dim=-1,
         )  # Checking for new face tokens
         max_one_ind = max_one_ind.to(torch.int32)
-        zero_inds = (torch.argmax((completed_samples_boolean).to(torch.int32), dim=-1)).to(
+        zero_inds = (
+            torch.argmax((completed_samples_boolean).to(torch.int32), dim=-1)
+        ).to(
             torch.int32
         )  # Figuring out where the zeros are in every row
-        num_face_indices = torch.where(complete_samples, zero_inds, max_one_ind) + 1  # How many vertices in each face
+        num_face_indices = (
+            torch.where(complete_samples, zero_inds, max_one_ind) + 1
+        )  # How many vertices in each face
 
-        faces_mask = (torch.arange(sample_length)[None] < num_face_indices[:, None] - 1).to(
+        faces_mask = (
+            torch.arange(sample_length)[None] < num_face_indices[:, None] - 1
+        ).to(
             torch.int32
         )  # Faces mask turns the last true to false in each row
 
         samples = samples * faces_mask
 
-        faces_mask = (torch.arange(sample_length)[None] < num_face_indices[:, None]).to(torch.int32)
+        faces_mask = (torch.arange(sample_length)[None] < num_face_indices[:, None]).to(
+            torch.int32
+        )
 
         pad_size = max_sample_length - sample_length
         samples = F.pad(samples, [0, pad_size, 0, 0])

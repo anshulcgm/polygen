@@ -1,9 +1,8 @@
-"""Tests to ensure that the vertex model can complete a forward pass and can sample a vertex"""
+"""Tests to ensure that the vertex model can complete a forward pass and can sample vertices"""
 
 import pdb
 
 import torch
-
 
 from polygen.modules.vertex_model import VertexModel
 
@@ -27,8 +26,12 @@ def test_vertex_model_forward():
         max_num_input_verts=100,
         use_discrete_embeddings=True,
     )
-    vertex_model_batch = {"vertices_flat": torch.randint(low=0, high=255, size=[4, 30]), "class_label": torch.randint(low = 0, high = 10, size = [4])}
+    vertex_model_batch = {
+        "vertices_flat": torch.randint(low=0, high=255, size=[4, 30]),
+        "class_label": torch.randint(low=0, high=10, size=[4]),
+    }
     logits = vertex_model(vertex_model_batch)
+
 
 def test_vertex_model_sample():
     decoder_config = {
@@ -48,5 +51,5 @@ def test_vertex_model_sample():
         use_discrete_embeddings=True,
     )
 
-    context = {"class_label" : torch.randint(low = 0, high = 10, size = [4])}
-    samples = vertex_model.sample(num_samples = 4, context = context)
+    context = {"class_label": torch.randint(low=0, high=10, size=[4])}
+    samples = vertex_model.sample(num_samples=4, context=context)
