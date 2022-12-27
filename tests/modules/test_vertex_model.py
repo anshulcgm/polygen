@@ -49,5 +49,4 @@ def test_vertex_model_sample():
     )
 
     context = {"class_label" : torch.randint(low = 0, high = 10, size = [4])}
-
     samples = vertex_model.sample(num_samples = 4, context = context)

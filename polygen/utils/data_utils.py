@@ -30,11 +30,11 @@ def random_shift(vertices: torch.Tensor, shift_factor: float = 0.25) -> torch.Te
         vertices: Shifted vertices
     """
 
-    max_positive_shift = (255 - torch.max(vertices, axis=0)[0]).to(torch.float32)
+    max_positive_shift = (255 - torch.max(vertices, dim=0)[0]).to(torch.float32)
     positive_condition_tensor = max_positive_shift > 1e-9
     max_positive_shift = torch.where(positive_condition_tensor, max_positive_shift, torch.Tensor([1e-9, 1e-9, 1e-9]))
 
-    max_negative_shift = torch.min(vertices, axis=0)[0].to(torch.float32)
+    max_negative_shift = torch.min(vertices, dim=0)[0].to(torch.float32)
     negative_condition_tensor = max_negative_shift > 1e-9
     max_negative_shift = torch.where(negative_condition_tensor, max_negative_shift, torch.Tensor([1e-9, 1e-9, 1e-9]))
     normal_dist = TruncatedNormal(
@@ -47,88 +47,7 @@ def random_shift(vertices: torch.Tensor, shift_factor: float = 0.25) -> torch.Te
     vertices += shift
     return vertices
 
-
-def read_obj(obj_path: str) -> Tuple[np.ndarray, List]:
-    """Utils method to read .obj file
-
-    Args:
-        obj_path: Path of .obj file
-    Returns:
-        flat_vertices_list: flattened vertex coordinates
-        flat_triangles: vertex indices representing connectivity
-    """
-    vertex_list = []
-    flat_vertices_list = []
-    flat_vertices_indices = {}
-    flat_triangles = []
-
-    with open(obj_path) as obj_file:
-        for line in obj_file:
-            tokens = line.split()
-            if not tokens:
-                continue
-            line_type = tokens[0]
-            # We skip lines not starting with v or f.
-            if line_type == "v":
-                vertex_list.append([float(x) for x in tokens[1:]])
-            elif line_type == "f":
-                triangle = []
-                for i in range(len(tokens) - 1):
-                    vertex_name = tokens[i + 1]
-                    if vertex_name in flat_vertices_indices:
-                        triangle.append(flat_vertices_indices[vertex_name])
-                        continue
-                    flat_vertex = []
-                    for index in six.ensure_str(vertex_name).split("/"):
-                        if not index:
-                            continue
-                        # obj triangle indices are 1 indexed, so subtract 1 here.
-                        flat_vertex += vertex_list[int(index) - 1]
-                    flat_vertex_index = len(flat_vertices_list)
-                    flat_vertices_list.append(flat_vertex)
-                    flat_vertices_indices[vertex_name] = flat_vertex_index
-                    triangle.append(flat_vertex_index)
-                flat_triangles.append(triangle)
-
-    return np.array(flat_vertices_list, dtype=np.float32), flat_triangles
-
-
-def write_obj(
-    vertices: np.ndarray,
-    faces: List[List[int]],
-    file_path: str,
-    transpose: bool = True,
-    scale: float = 1.0,
-) -> None:
-    """Writes vertices and faces to .obj file to represent 3D object
-
-    Args:
-        vertices: array of shape (num_vertices, 3) representing vertex indices
-        faces: List of vertex indices representing vertex connectivity
-        file_path: Where to save .obj file
-        transpose: boolean representing whether to change traditional order of (x, y, z)
-        scale: Factor by which to scale vertices
-    """
-    if transpose:
-        vertices = vertices[:, [1, 2, 0]]
-    vertices *= scale
-    if faces is not None:
-        if min(min(faces)) == 0:
-            f_add = 1
-        else:
-            f_add = 0
-    with open(file_path, "w") as f:
-        for v in vertices:
-            f.write("v {} {} {}\n".format(v[0], v[1], v[2]))
-        for face in faces:
-            line = "f"
-            for i in face:
-                line += " {}".format(i + f_add)
-            line += "\n"
-            f.write(line)
-
-
-def quantize_verts(verts: np.ndarray, n_bits: int = 8) -> np.ndarray:
+def quantize_verts(verts: torch.Tensor, n_bits: int = 8) -> torch.Tensor:
     """Convert floating point vertices to discrete values in [0, 2 ** n_bits - 1]
 
     Args:
@@ -139,10 +58,10 @@ def quantize_verts(verts: np.ndarray, n_bits: int = 8) -> np.ndarray:
     """
     range_quantize = 2**n_bits - 1
     quantized_verts = (verts - MIN_RANGE) * range_quantize / (MAX_RANGE - MIN_RANGE)
-    return quantized_verts
+    return quantized_verts.to(torch.int32)
 
 
-def dequantize_verts(verts: np.ndarray, n_bits: int = 8, add_noise: bool = False) -> np.ndarray:
+def dequantize_verts(verts: torch.Tensor, n_bits: int = 8, add_noise: bool = False) -> torch.Tensor:
     """Undoes quantization process and converts from [0, 2 ** n_bits - 1] to floats
 
     Args:
@@ -155,7 +74,7 @@ def dequantize_verts(verts: np.ndarray, n_bits: int = 8, add_noise: bool = False
     range_quantize = 2**n_bits - 1
     dequantized_verts = verts * (MAX_RANGE - MIN_RANGE) / range_quantize + MIN_RANGE
     if add_noise:
-        dequantized_verts = np.random.uniform(size=dequantized_verts.shape) * (1 / range_quantize)
+        dequantized_verts = torch.rand(size=dequantized_verts.shape) * (1 / range_quantize)
     return dequantized_verts
 
 
@@ -175,7 +94,7 @@ def face_to_cycles(faces: List[int]) -> List[int]:
     return list(nx.cycle_basis(g))
 
 
-def flatten_faces(faces: List[List[int]]) -> np.ndarray:
+def flatten_faces(faces: torch.Tensor) -> torch.Tensor:
     """Converts from list of faces to flat face array with stopping indices
 
     Args:
@@ -185,14 +104,14 @@ def flatten_faces(faces: List[List[int]]) -> np.ndarray:
         flattened_faces: A 1D list of faces with stop tokens indicating when to move to the next face
     """
     if not faces:
-        return np.array([0])
+        return torch.Tensor([0])
     else:
         l = [f + [-1] for f in faces[:-1]]
         l += [faces[-1] + [-2]]
-    return np.array([item for sublist in l for item in sublist]) + 2
+    return torch.Tensor([item for sublist in l for item in sublist]) + 2
 
 
-def unflatten_faces(flat_faces: np.ndarray) -> List[List[int]]:
+def unflatten_faces(flat_faces: torch.Tensor) -> List[List[int]]:
     """Converts from flat face sequence to a list of separate faces
 
     Args:
@@ -216,7 +135,7 @@ def unflatten_faces(flat_faces: np.ndarray) -> List[List[int]]:
     return [o for o in outputs if len(o) > 2]
 
 
-def center_vertices(vertices: np.ndarray) -> np.ndarray:
+def center_vertices(vertices: torch.Tensor) -> torch.Tensor:
     """Translate vertices so that the bounding box is centered at zero
 
     Args:
@@ -225,14 +144,14 @@ def center_vertices(vertices: np.ndarray) -> np.ndarray:
     Returns:
         centered_vertices: centered vertices in array of shape (num_vertices, 3)
     """
-    vert_min = np.min(vertices, axis=0)
-    vert_max = np.max(vertices, axis=0)
+    vert_min, _= torch.min(vertices, dim=0)
+    vert_max, _ = torch.max(vertices, dim=0)
     vert_center = 0.5 * (vert_min + vert_max)
     centered_vertices = vertices - vert_center
     return centered_vertices
 
 
-def normalize_vertices_scale(vertices: np.ndarray) -> np.ndarray:
+def normalize_vertices_scale(vertices: torch.Tensor) -> torch.Tensor:
     """Scale vertices so that the long diagonal of the bounding box is one
 
     Args:
@@ -240,24 +159,38 @@ def normalize_vertices_scale(vertices: np.ndarray) -> np.ndarray:
     Returns:
         scaled_vertices: scaled vertices of shape (num_vertices, 3)
     """
-    vert_min = np.min(vertices, axis=0)
-    vert_max = np.max(vertices, axis=0)
+    vert_min, _ = torch.min(vertices, dim=0)
+    vert_max, _ = torch.max(vertices, dim=0)
     extents = vert_max - vert_min
-    scale = np.sqrt(np.sum(extents**2))
+    scale = torch.sqrt(torch.sum(extents**2))
     scaled_vertices = vertices / scale
     return scaled_vertices
 
+def torch_lexsort(a: torch.Tensor, dim=-1) -> torch.Tensor:
+    """Pytorch implementation of np.lexsort (https://discuss.pytorch.org/t/numpy-lexsort-equivalent-in-pytorch/47850/3)
+
+    Args:
+        a: Tensor of shape (n, m)
+    
+    Returns:
+        lex_sorted_tensor: Tensor of shape (n, m) after lexsort has been applied
+    """
+
+    assert dim == -1
+    assert a.ndim == 2
+    a_unq, inv = torch.unique(a.flip(0), dim=dim, sorted=True, return_inverse=True)
+    return torch.argsort(inv)
 
 def quantize_process_mesh(
-    vertices: np.ndarray,
+    vertices: torch.Tensor,
     faces: List[List[int]],
     tris: Optional[List[int]] = None,
     quantization_bits: int = 8,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Quantize vertices, remove resulting duplicates and reindex faces
 
     Args:
-        vertices: np array of shape (num_vertices, 3)
+        vertices: torch tensor of shape (num_vertices, 3)
         faces: Unflattened faces
         tris: List of triangles
         quantization_bits: number of quantization bits
@@ -268,16 +201,16 @@ def quantize_process_mesh(
         triangles: list of triangles in 3D object
     """
     vertices = quantize_verts(vertices, quantization_bits)
-    vertices, inv = np.unique(vertices, axis=0, return_inverse=True)
+    vertices, inv = torch.unique(vertices, dim=0, return_inverse=True)
 
     # Sort vertices by z then y then x
-    sort_inds = np.lexsort(vertices.T)
+    sort_inds = torch_lexsort(vertices.T)
     vertices = vertices[sort_inds]
 
     # Re-index faces and tris to re-ordered vertices
-    faces = [np.argsort(sort_inds)[inv[f]] for f in faces]
+    faces = [torch.argsort(sort_inds)[inv[f]] for f in faces]
     if tris is not None:
-        tris = np.array([np.argsort(sort_inds)[inv[t]] for t in tris])
+        tris = torch.Tensor([torch.argsort(sort_inds)[inv[t]] for t in tris])
 
     # Merging duplicate vertices and re-indexing the faces causes some faces to
     # contain loops (e.g. [2, 3, 5, 2, 4]). Split these faces into distinct
@@ -290,13 +223,13 @@ def quantize_process_mesh(
             c_length = len(c)
             # Only append faces with more than two verts
             if c_length > 2:
-                d = np.argmin(c)
+                d = torch.argmin(c)
                 # Cyclically permute faces so that the first index is the smallest
                 sub_faces.append([c[(d + i) % c_length] for i in range(c_length)])
 
     faces = sub_faces
     if tris is not None:
-        tris = np.array([v for v in tris if len(set(v)) == len(v)])
+        tris = torch.Tensor([v for v in tris if len(set(v)) == len(v)])
 
     # Sort faces by lowest vertex indices. If two faces have the same lowest
     # index then sort by next lowest and so on.
@@ -304,53 +237,19 @@ def quantize_process_mesh(
     if tris is not None:
         tris = tris.tolist()
         tris.sort(key=lambda f: tuple(sorted(f)))
-        tris = np.array(tris)
+        tris = torch.Tensor(tris)
 
     # After removing degenerate faces some vertices are now unreferenced
     # Remove these
-    vert_connected = np.equal(np.arange(num_verts)[:, None], np.hstack(faces)[None]).any(axis=-1)
+    vert_connected = torch.eq(torch.arange(num_verts)[:, None], torch.hstack(faces)[None]).any(axis=-1)
     vertices = vertices[vert_connected]
 
     # Re-index faces and tris to re-ordered vertices.
-    vert_indices = np.arange(num_verts) - np.cumsum(1 - vert_connected.astype("int"))
+    vert_indices = torch.arange(num_verts) - torch.cumsum(1 - vert_connected.to(torch.int32))
     faces = [vert_indices[f].tolist() for f in faces]
     if tris is not None:
-        tris = np.array([vert_indices[t].tolist() for t in tris])
+        tris = torch.Tensor([vert_indices[t].tolist() for t in tris])
     return vertices, faces, tris
-
-
-def load_process_mesh(mesh_obj_path: str, quantization_bits: int = 8) -> Dict[str, np.ndarray]:
-    """Load obj file and process mesh
-
-    Args:
-        mesh_obj_path: string representing path to obj file
-        quantization_bits: number of quantization bits
-
-    Returns:
-        mesh: A dictionary that contains the processed vertices and faces
-    """
-    vertices, faces = read_obj(mesh_obj_path)
-
-    # Transpose so that z-axis is vertical
-    vertices = vertices[:, [2, 0, 1]]
-
-    # Translate the vertices so that bounding box is centered at zero
-    vertices = center_vertices(vertices)
-
-    # Scale the vertices so that the long diagonal of the bounding box is equal to one
-    vertices = normalize_vertices_scale(vertices)
-
-    # Quantize and sort vertices, remove duplicates, sort and re-index faces
-    vertices, faces, _ = quantize_process_mesh(vertices, faces, quantization_bits=quantization_bits)
-
-    # Flatten faces and add 'new face' = 1 and 'stop' = 0 tokens
-    faces = flatten_faces(faces)
-
-    return {
-        "vertices": vertices,
-        "faces": faces,
-    }
-
 
 def plot_meshes(
     mesh_list: List[Dict[str, np.ndarray]],
