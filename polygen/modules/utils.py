@@ -23,9 +23,7 @@ def top_k_logits(logits: torch.Tensor, k: int) -> torch.Tensor:
     else:
         values, _ = torch.topk(logits, k)
         k_largest = torch.min(values)
-        logits = torch.where(
-            torch.le(logits, k_largest), torch.ones_like(logits) * -1e9, logits
-        )
+        logits = torch.where(torch.le(logits, k_largest), torch.ones_like(logits) * -1e9, logits)
         return logits
 
 

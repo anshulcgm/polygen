@@ -33,9 +33,7 @@ class PolygenDecoderLayer(nn.TransformerDecoderLayer):
             dropout: Dropout rate applied after ReLU in each connected layer.
             re_zero: If True, Alpha scale residuals with zero initialization.
         """
-        super(PolygenDecoderLayer, self).__init__(
-            d_model, nhead, dim_feedforward=dim_feedforward, dropout=dropout
-        )
+        super(PolygenDecoderLayer, self).__init__(d_model, nhead, dim_feedforward=dim_feedforward, dropout=dropout)
         self.self_attn = MultiheadAttention(d_model, nhead, dropout=dropout)
         self.multihead_attn = MultiheadAttention(d_model, nhead, dropout=dropout)
         self.linear1 = Linear(d_model, dim_feedforward)
@@ -90,9 +88,7 @@ class PolygenDecoderLayer(nn.TransformerDecoderLayer):
             key = tgt
             value = tgt
         tgt2 = self.norm1(tgt)
-        tgt2 = self.self_attn(
-            tgt, key, value, attn_mask=tgt_mask, key_padding_mask=tgt_key_padding_mask
-        )[0]
+        tgt2 = self.self_attn(tgt, key, value, attn_mask=tgt_mask, key_padding_mask=tgt_key_padding_mask)[0]
         if self.re_zero:
             tgt2 = tgt2 * self.alpha
         tgt = tgt + self.dropout1(tgt2)
@@ -249,11 +245,7 @@ class TransformerDecoder(pl.LightningModule):
             mask: A lower triangular matrix of shape [sequence_length, sequence_length].
         """
         mask = (torch.triu(torch.ones(sz, sz, device=self.device)) == 1).transpose(0, 1)
-        mask = (
-            mask.float()
-            .masked_fill(mask == 0, float("-inf"))
-            .masked_fill(mask == 1, float(0.0))
-        )
+        mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
         return mask
 
     def forward(
@@ -272,7 +264,5 @@ class TransformerDecoder(pl.LightningModule):
         """
         sz = inputs.shape[0]
         mask = self.generate_square_subsequent_mask(sz)
-        out = self.decoder(
-            inputs, memory=sequential_context_embeddings, tgt_mask=mask, cache=cache
-        )
+        out = self.decoder(inputs, memory=sequential_context_embeddings, tgt_mask=mask, cache=cache)
         return out

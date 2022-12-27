@@ -32,15 +32,11 @@ def random_shift(vertices: torch.Tensor, shift_factor: float = 0.25) -> torch.Te
 
     max_positive_shift = (255 - torch.max(vertices, axis=0)[0]).to(torch.float32)
     positive_condition_tensor = max_positive_shift > 1e-9
-    max_positive_shift = torch.where(
-        positive_condition_tensor, max_positive_shift, torch.Tensor([1e-9, 1e-9, 1e-9])
-    )
+    max_positive_shift = torch.where(positive_condition_tensor, max_positive_shift, torch.Tensor([1e-9, 1e-9, 1e-9]))
 
     max_negative_shift = torch.min(vertices, axis=0)[0].to(torch.float32)
     negative_condition_tensor = max_negative_shift > 1e-9
-    max_negative_shift = torch.where(
-        negative_condition_tensor, max_negative_shift, torch.Tensor([1e-9, 1e-9, 1e-9])
-    )
+    max_negative_shift = torch.where(negative_condition_tensor, max_negative_shift, torch.Tensor([1e-9, 1e-9, 1e-9]))
     normal_dist = TruncatedNormal(
         loc=torch.zeros((1, 3)),
         scale=shift_factor * 255,
@@ -141,15 +137,13 @@ def quantize_verts(verts: np.ndarray, n_bits: int = 8) -> np.ndarray:
     Returns:
         quantized_verts: np array representing quantized verts
     """
-    range_quantize = 2 ** n_bits - 1
+    range_quantize = 2**n_bits - 1
     verts = verts.astype("float32")
     quantized_verts = (verts - MIN_RANGE) * range_quantize / (MAX_RANGE - MIN_RANGE)
     return quantized_verts.astype("int32")
 
 
-def dequantize_verts(
-    verts: np.ndarray, n_bits: int = 8, add_noise: bool = False
-) -> np.ndarray:
+def dequantize_verts(verts: np.ndarray, n_bits: int = 8, add_noise: bool = False) -> np.ndarray:
     """Undoes quantization process and converts from [0, 2 ** n_bits - 1] to floats
 
     Args:
@@ -159,13 +153,11 @@ def dequantize_verts(
     Returns:
         dequantized_verts: np array representing floating point verts
     """
-    range_quantize = 2 ** n_bits - 1
+    range_quantize = 2**n_bits - 1
     verts = verts.astype("float32")
     dequantized_verts = verts * (max_range - min_range) / range_quantize + min_range
     if add_noise:
-        dequantized_verts = np.random.uniform(size=dequantized_verts.shape) * (
-            1 / range_quantize
-        )
+        dequantized_verts = np.random.uniform(size=dequantized_verts.shape) * (1 / range_quantize)
     return dequantized_verts
 
 
@@ -253,7 +245,7 @@ def normalize_vertices_scale(vertices: np.ndarray) -> np.ndarray:
     vert_min = np.min(vertices, axis=0)
     vert_max = np.max(vertices, axis=0)
     extents = vert_max - vert_min
-    scale = np.sqrt(np.sum(extents ** 2))
+    scale = np.sqrt(np.sum(extents**2))
     scaled_vertices = vertices / scale
     return scaled_vertices
 
@@ -318,9 +310,7 @@ def quantize_process_mesh(
 
     # After removing degenerate faces some vertices are now unreferenced
     # Remove these
-    vert_connected = np.equal(
-        np.arange(num_verts)[:, None], np.hstack(faces)[None]
-    ).any(axis=-1)
+    vert_connected = np.equal(np.arange(num_verts)[:, None], np.hstack(faces)[None]).any(axis=-1)
     vertices = vertices[vert_connected]
 
     # Re-index faces and tris to re-ordered vertices.
@@ -331,9 +321,7 @@ def quantize_process_mesh(
     return vertices, faces, tris
 
 
-def load_process_mesh(
-    mesh_obj_path: str, quantization_bits: int = 8
-) -> Dict[str, np.ndarray]:
+def load_process_mesh(mesh_obj_path: str, quantization_bits: int = 8) -> Dict[str, np.ndarray]:
     """Load obj file and process mesh
 
     Args:
@@ -355,9 +343,7 @@ def load_process_mesh(
     vertices = normalize_vertices_scale(vertices)
 
     # Quantize and sort vertices, remove duplicates, sort and re-index faces
-    vertices, faces, _ = quantize_process_mesh(
-        vertices, faces, quantization_bits=quantization_bits
-    )
+    vertices, faces, _ = quantize_process_mesh(vertices, faces, quantization_bits=quantization_bits)
 
     # Flatten faces and add 'new face' = 1 and 'stop' = 0 tokens
     faces = flatten_faces(faces)
@@ -411,9 +397,7 @@ def plot_meshes(
 
         if mesh["faces"] is not None:
             if mesh["vertices_conditional"] is not None:
-                face_verts = np.concatenate(
-                    [mesh["vertices_conditional"], mesh["vertices"]], axis=0
-                )
+                face_verts = np.concatenate([mesh["vertices_conditional"], mesh["vertices"]], axis=0)
             else:
                 face_verts = mesh["vertices"]
             collection = []
@@ -474,11 +458,7 @@ def plot_meshes(
         if mesh["class_name"] is not None:
             display_string += "Synset: {}".format(mesh["class_name"])
         if mesh["pointcloud"] is not None:
-            display_string += "Num. pointcloud: {}\n".format(
-                mesh["pointcloud"].shape[0]
-            )
+            display_string += "Num. pointcloud: {}\n".format(mesh["pointcloud"].shape[0])
         ax.text2D(0.05, 0.8, display_string, transform=ax.transAxes)
-    plt.subplots_adjust(
-        left=0.0, right=1.0, bottom=0.0, top=1.0, wspace=0.025, hspace=0.025
-    )
+    plt.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0, wspace=0.025, hspace=0.025)
     plt.show()
