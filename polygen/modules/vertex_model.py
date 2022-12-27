@@ -180,7 +180,7 @@ class VertexModel(pl.LightningModule):
         logits = top_p_logits(logits, top_p)
         return logits
 
-    def forward(self, batch: Dict[str, torch.Tensor]) -> Tensor:
+    def forward(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
         Forward method for Vertex Model
         Args:
@@ -257,8 +257,8 @@ class VertexModel(pl.LightningModule):
     def sample(
         self,
         num_samples: int,
-        context: Optional[Dict[str, torch.Tensor]] = None,
-        max_sample_length: Optional[int] = None,
+        max_sample_length: int = 50,
+        context: Dict[str, torch.Tensor] = None,
         temperature: float = 1.0,
         top_k: int = 0,
         top_p: float = 1.0,

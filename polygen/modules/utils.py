@@ -1,6 +1,7 @@
 import copy
 
 import torch
+import torch.nn as nn
 from torch.nn import ModuleList
 import torch.nn.functional as F
 

@@ -2,7 +2,7 @@
 import os
 import six
 from six.moves import range
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 import networkx as nx
 import numpy as np
@@ -138,9 +138,8 @@ def quantize_verts(verts: np.ndarray, n_bits: int = 8) -> np.ndarray:
         quantized_verts: np array representing quantized verts
     """
     range_quantize = 2**n_bits - 1
-    verts = verts.astype("float32")
     quantized_verts = (verts - MIN_RANGE) * range_quantize / (MAX_RANGE - MIN_RANGE)
-    return quantized_verts.astype("int32")
+    return quantized_verts
 
 
 def dequantize_verts(verts: np.ndarray, n_bits: int = 8, add_noise: bool = False) -> np.ndarray:
@@ -154,8 +153,7 @@ def dequantize_verts(verts: np.ndarray, n_bits: int = 8, add_noise: bool = False
         dequantized_verts: np array representing floating point verts
     """
     range_quantize = 2**n_bits - 1
-    verts = verts.astype("float32")
-    dequantized_verts = verts * (max_range - min_range) / range_quantize + min_range
+    dequantized_verts = verts * (MAX_RANGE - MIN_RANGE) / range_quantize + MIN_RANGE
     if add_noise:
         dequantized_verts = np.random.uniform(size=dequantized_verts.shape) * (1 / range_quantize)
     return dequantized_verts
