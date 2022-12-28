@@ -381,7 +381,7 @@ class FaceModel(pl.LightningModule):
     def sample(
         self,
         context: Dict[str, Any],
-        max_sample_length: Optional[int] = None,
+        max_sample_length: int = 5000,
         temperature: float = 1.0,
         top_k: int = 0,
         top_p: float = 1.0,
