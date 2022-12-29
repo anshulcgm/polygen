@@ -16,7 +16,8 @@ def test_face_model_forward():
         "num_heads": 4,
         "layer_norm": True,
         "num_layers": 2,
-    }
+    }      
+
     face_model = FaceModel(
         encoder_config=transformer_config,
         decoder_config=transformer_config,

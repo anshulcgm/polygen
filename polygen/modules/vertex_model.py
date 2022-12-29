@@ -440,7 +440,7 @@ class VertexModel(pl.LightningModule):
             "completed": completed,
             "vertices": vertices,
             "num_vertices": num_vertices,
-            "vertices_mask": vertices_mask,
+            "vertices_mask": vertices_mask.to(torch.int32),
         }
         return outputs
 
