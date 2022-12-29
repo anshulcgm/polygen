@@ -5,6 +5,7 @@ import random
 from typing import List, Dict, Optional, Callable
 
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 from pytorch3d.io import load_obj
 import pytorch_lightning as pl
@@ -22,18 +23,17 @@ def collate_vertex_model_batch(
     Returns
         vertex_model_batch: A single dictionary which represents the whole batch
     """
-
     vertex_model_batch = {}
     num_vertices_list = [shape_dict["vertices"].shape[0] for shape_dict in ds]
     max_vertices = max(num_vertices_list)
     num_elements = len(ds)
-    vertices_flat = torch.zeros([num_elements, max_vertices * 3 + 1])
-    class_labels = torch.zeros([num_elements])
-    vertices_flat_mask = torch.zeros_like(vertices_flat)
+    vertices_flat = torch.zeros([num_elements, max_vertices * 3 + 1], dtype = torch.int32)
+    class_labels = torch.zeros([num_elements], dtype = torch.int32)
+    vertices_flat_mask = torch.zeros_like(vertices_flat, dtype = torch.int32)
     for i, element in enumerate(ds):
         vertices = element["vertices"]
         if apply_random_shift:
-            vertices = random_shift(vertices)
+            vertices = data_utils.random_shift(vertices)
         initial_vertex_size = vertices.shape[0]
         padding_size = max_vertices - initial_vertex_size
         vertices_permuted = torch.stack(
@@ -74,17 +74,17 @@ def collate_face_model_batch(
     max_faces = max(num_faces_list)
     num_elements = len(ds)
 
-    shuffled_faces = torch.zeros([num_elements, max_faces])
+    shuffled_faces = torch.zeros([num_elements, max_faces], dtype = torch.int32)
     face_vertices = torch.zeros([num_elements, max_vertices, 3])
-    face_vertices_mask = torch.zeros([num_elements, max_vertices])
-    faces_mask = torch.zeros_like(shuffled_faces)
+    face_vertices_mask = torch.zeros([num_elements, max_vertices], dtype = torch.int32)
+    faces_mask = torch.zeros_like(shuffled_faces, dtype = torch.int32)
 
     for i, element in enumerate(ds):
         vertices = element["vertices"]
-
-        if apply_random_shift:
-            vertices = random_shift(vertices)
         num_vertices = vertices.shape[0]
+        if apply_random_shift:
+            vertices = data_utils.random_shift(vertices)
+
         if shuffle_vertices:
             permutation = torch.randperm(num_vertices)
             vertices = vertices[permutation]
@@ -94,9 +94,9 @@ def collate_face_model_batch(
                     torch.Tensor([0, 1]).to(torch.int32),
                     torch.argsort(permutation).to(torch.int32) + 2,
                 ],
-                axis=0,
+                dim=0,
             )
-            curr_faces = face_permutation[element["faces"]][None]
+            curr_faces = face_permutation[element["faces"].to(torch.int64)][None]
         else:
             curr_faces = faces
 
@@ -104,14 +104,14 @@ def collate_face_model_batch(
         initial_faces_size = curr_faces.shape[1]
         face_padding_size = max_faces - initial_faces_size
         shuffled_faces[i] = F.pad(curr_faces, [0, face_padding_size, 0, 0])
-        curr_verts = helper_methods.dequantize_verts(vertices, quantization_bits)
+        curr_verts = data_utils.dequantize_verts(vertices, quantization_bits)
         face_vertices[i] = F.pad(curr_verts, [0, 0, 0, vertex_padding_size])
         face_vertices_mask[i] = torch.zeros_like(
             face_vertices[i][..., 0], dtype=torch.float32
         )
         face_vertices_mask[i, :num_vertices] = 1
         faces_mask[i] = torch.zeros_like(shuffled_faces[i], dtype=torch.float32)
-        faces_mask[i, : initial_faces_size + 1] = 1
+        faces_mask[i, :initial_faces_size + 1] = 1
     face_model_batch["faces"] = shuffled_faces
     face_model_batch["vertices"] = face_vertices
     face_model_batch["vertices_mask"] = face_vertices_mask
@@ -151,6 +151,8 @@ class ShapenetDataset(Dataset):
         vertices = data_utils.normalize_vertices_scale(vertices)
         vertices, faces, _ = data_utils.quantize_process_mesh(vertices, faces)
         faces = data_utils.flatten_faces(faces)
+        vertices = vertices.to(torch.int32)
+        faces = faces.to(torch.int32)
         class_label = self.label_dict[mesh_file.split("/")[-4]]
         mesh_dict = {"vertices": vertices, "faces": faces, "class_label": class_label}
         return mesh_dict
