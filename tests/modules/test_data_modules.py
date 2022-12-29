@@ -1,4 +1,4 @@
-"""Tests to ensure that the data modules load .obj files correctly"""
+"""Tests to ensure that the data modules load .obj files correctly, batch files correctly and can pass files into models"""
 import pdb
 import random
 
@@ -47,7 +47,6 @@ def test_polygen_data_module_vertices():
         use_discrete_embeddings=True,
     )
     
-    pdb.set_trace()
     logits = vertex_model(train_batch)
     samples = vertex_model.sample(num_samples=4, context=train_batch)
 
@@ -78,6 +77,5 @@ def test_polygen_data_module_faces():
         num_classes=55,
     )
 
-    pdb.set_trace()
     logits = face_model(train_batch)
     samples = face_model.sample(context = train_batch)
