@@ -180,6 +180,9 @@ class PolygenDataModule(pl.LightningDataModule):
         batch_size: int,
         training_split: float = 0.925,
         val_split: float = 0.025,
+        default_shapenet: bool = True,
+        all_files: Optional[List[str]] = None,
+        label_dict: Optional[Dict[str, int]] = None,
     ) -> None:
         """
         Args:
@@ -187,6 +190,9 @@ class PolygenDataModule(pl.LightningDataModule):
             batch_size: How many 3D objects in one batch
             training_split: What proportion of data to use for training the model
             val_split: What proportion of data to use for validation
+            default_shapenet: Whether or not we are using the default shapenet data structure
+            all_files: List of all .obj files (needs to be provided if default_shapnet = false)
+            label_dict: Mapping of .obj file to class label (needs to be provided if default_shapnet = false)
         """
         super().__init__()
 
@@ -195,7 +201,7 @@ class PolygenDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.collate_fn = collate_fn
         self.batch_size = batch_size
-        self.shapenet_dataset = ShapenetDataset(self.data_dir)
+        self.shapenet_dataset = ShapenetDataset(self.data_dir, default_shapenet = default_shapenet, all_files = all_files, label_dict = label_dict)
         self.training_split = training_split
         self.val_split = val_split
 
