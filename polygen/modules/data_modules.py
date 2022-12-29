@@ -27,9 +27,9 @@ def collate_vertex_model_batch(
     num_vertices_list = [shape_dict["vertices"].shape[0] for shape_dict in ds]
     max_vertices = max(num_vertices_list)
     num_elements = len(ds)
-    vertices_flat = torch.zeros([num_elements, max_vertices * 3 + 1], dtype = torch.int32)
-    class_labels = torch.zeros([num_elements], dtype = torch.int32)
-    vertices_flat_mask = torch.zeros_like(vertices_flat, dtype = torch.int32)
+    vertices_flat = torch.zeros([num_elements, max_vertices * 3 + 1], dtype=torch.int32)
+    class_labels = torch.zeros([num_elements], dtype=torch.int32)
+    vertices_flat_mask = torch.zeros_like(vertices_flat, dtype=torch.int32)
     for i, element in enumerate(ds):
         vertices = element["vertices"]
         if apply_random_shift:
@@ -74,10 +74,10 @@ def collate_face_model_batch(
     max_faces = max(num_faces_list)
     num_elements = len(ds)
 
-    shuffled_faces = torch.zeros([num_elements, max_faces], dtype = torch.int32)
+    shuffled_faces = torch.zeros([num_elements, max_faces], dtype=torch.int32)
     face_vertices = torch.zeros([num_elements, max_vertices, 3])
-    face_vertices_mask = torch.zeros([num_elements, max_vertices], dtype = torch.int32)
-    faces_mask = torch.zeros_like(shuffled_faces, dtype = torch.int32)
+    face_vertices_mask = torch.zeros([num_elements, max_vertices], dtype=torch.int32)
+    faces_mask = torch.zeros_like(shuffled_faces, dtype=torch.int32)
 
     for i, element in enumerate(ds):
         vertices = element["vertices"]
@@ -111,7 +111,7 @@ def collate_face_model_batch(
         )
         face_vertices_mask[i, :num_vertices] = 1
         faces_mask[i] = torch.zeros_like(shuffled_faces[i], dtype=torch.float32)
-        faces_mask[i, :initial_faces_size + 1] = 1
+        faces_mask[i, : initial_faces_size + 1] = 1
     face_model_batch["faces"] = shuffled_faces
     face_model_batch["vertices"] = face_vertices
     face_model_batch["vertices_mask"] = face_vertices_mask
@@ -120,18 +120,29 @@ def collate_face_model_batch(
 
 
 class ShapenetDataset(Dataset):
-    def __init__(self, training_dir: str) -> None:
+    def __init__(
+        self,
+        training_dir: str,
+        default_shapenet: bool = True,
+        all_files: Optional[List[str]] = None,
+        label_dict: Dict[str, int] = None,
+    ) -> None:
         """
         Args:
             training_dir: Root folder of shapenet dataset
         """
         self.training_dir = training_dir
-        self.all_files = glob.glob(
-            f"{self.training_dir}/*/*/models/model_normalized.obj"
-        )
-        self.label_dict = {}
-        for i, class_label in enumerate(os.listdir(training_dir)):
-            self.label_dict[class_label] = i
+        self.default_shapenet = default_shapenet
+        if default_shapenet:
+            self.all_files = glob.glob(
+                f"{self.training_dir}/*/*/models/model_normalized.obj"
+            )
+            self.label_dict = {}
+            for i, class_label in enumerate(os.listdir(training_dir)):
+                self.label_dict[class_label] = i
+        else:
+            self.all_files = all_files
+            self.label_dict = label_dict
 
     def __len__(self) -> int:
         """Returns number of 3D objects"""
@@ -153,7 +164,10 @@ class ShapenetDataset(Dataset):
         faces = data_utils.flatten_faces(faces)
         vertices = vertices.to(torch.int32)
         faces = faces.to(torch.int32)
-        class_label = self.label_dict[mesh_file.split("/")[-4]]
+        if self.default_shapenet:
+            class_label = self.label_dict[mesh_file.split("/")[-4]]
+        else:
+            class_label = self.label_dict[mesh_file]
         mesh_dict = {"vertices": vertices, "faces": faces, "class_label": class_label}
         return mesh_dict
 

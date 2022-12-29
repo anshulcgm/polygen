@@ -8,6 +8,7 @@ from polygen.modules.vertex_model import VertexModel
 
 torch.manual_seed(42)
 
+
 def test_vertex_model_forward():
     decoder_config = {
         "hidden_size": 128,
@@ -38,7 +39,7 @@ def test_vertex_model_sample():
         "num_heads": 4,
         "layer_norm": True,
         "num_layers": 2,
-    }   
+    }
     vertex_model = VertexModel(
         decoder_config=decoder_config,
         quantization_bits=8,
