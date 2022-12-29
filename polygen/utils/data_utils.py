@@ -1,4 +1,4 @@
-"""Utils for manipulating obj data, most of the code is from https://github.com/deepmind/deepmind-research/blob/master/polygen/data_utils.py"""
+"""Utils for manipulating obj data, code is adapted from https://github.com/deepmind/deepmind-research/blob/master/polygen/data_utils.py"""
 import os
 import six
 from six.moves import range
@@ -65,7 +65,6 @@ def quantize_verts(verts: torch.Tensor, n_bits: int = 8) -> torch.Tensor:
     quantized_verts = (verts - MIN_RANGE) * range_quantize / (MAX_RANGE - MIN_RANGE)
     return quantized_verts.to(torch.int32)
 
-
 def dequantize_verts(
     verts: torch.Tensor, n_bits: int = 8, add_noise: bool = False
 ) -> torch.Tensor:
@@ -97,13 +96,13 @@ def face_to_cycles(faces: List[int]) -> List[int]:
         cycle_basis: All cycles in faces graph
     """
     g = nx.Graph()
+
     for v in range(len(faces) - 1):
         g.add_edge(faces[v], faces[v + 1])
     g.add_edge(faces[-1], faces[0])
     return list(nx.cycle_basis(g))
 
-
-def flatten_faces(faces: torch.Tensor) -> torch.Tensor:
+def flatten_faces(faces: List[List[int]]) -> torch.Tensor:
     """Converts from list of faces to flat face array with stopping indices
 
     Args:
@@ -113,11 +112,11 @@ def flatten_faces(faces: torch.Tensor) -> torch.Tensor:
         flattened_faces: A 1D list of faces with stop tokens indicating when to move to the next face
     """
     if not faces:
-        return torch.Tensor([0])
+        return torch.Tensor([0]).to(torch.int32)
     else:
         l = [f + [-1] for f in faces[:-1]]
         l += [faces[-1] + [-2]]
-    return torch.Tensor([item for sublist in l for item in sublist]) + 2
+    return (torch.Tensor([item for sublist in l for item in sublist]) + 2).to(torch.int32)
 
 
 def unflatten_faces(flat_faces: torch.Tensor) -> List[List[int]]:
@@ -191,13 +190,23 @@ def torch_lexsort(a: torch.Tensor, dim=-1) -> torch.Tensor:
     a_unq, inv = torch.unique(a.flip(0), dim=dim, sorted=True, return_inverse=True)
     return torch.argsort(inv)
 
+def argmin(arr: List[float]) -> int:
+    """Helper method to return argmin of a python list without numpy for code quality
+
+    Args:
+        arr: List of numbers
+    
+    Returns:
+        argmin: Location of minimum element in list
+    """
+    return min(range(len(arr)), key=lambda x : arr[x])
 
 def quantize_process_mesh(
     vertices: torch.Tensor,
     faces: List[List[int]],
     tris: Optional[List[int]] = None,
     quantization_bits: int = 8,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, List[List[int]], Optional[torch.Tensor]]:
     """Quantize vertices, remove resulting duplicates and reindex faces
 
     Args:
@@ -229,12 +238,12 @@ def quantize_process_mesh(
 
     sub_faces = []
     for f in faces:
-        cliques = face_to_cycles(f)
+        cliques = face_to_cycles(f.tolist())
         for c in cliques:
             c_length = len(c)
             # Only append faces with more than two verts
             if c_length > 2:
-                d = torch.argmin(c)
+                d = argmin(c)
                 # Cyclically permute faces so that the first index is the smallest
                 sub_faces.append([c[(d + i) % c_length] for i in range(c_length)])
 
@@ -245,6 +254,7 @@ def quantize_process_mesh(
     # Sort faces by lowest vertex indices. If two faces have the same lowest
     # index then sort by next lowest and so on.
     faces.sort(key=lambda f: tuple(sorted(f)))
+    faces = [torch.Tensor(f).to(torch.int64) for f in faces]
     if tris is not None:
         tris = tris.tolist()
         tris.sort(key=lambda f: tuple(sorted(f)))
@@ -252,14 +262,15 @@ def quantize_process_mesh(
 
     # After removing degenerate faces some vertices are now unreferenced
     # Remove these
+    num_verts = vertices.shape[0]
     vert_connected = torch.eq(
         torch.arange(num_verts)[:, None], torch.hstack(faces)[None]
-    ).any(axis=-1)
+    ).any(dim=-1)
     vertices = vertices[vert_connected]
 
     # Re-index faces and tris to re-ordered vertices.
     vert_indices = torch.arange(num_verts) - torch.cumsum(
-        1 - vert_connected.to(torch.int32)
+        (1 - vert_connected.to(torch.int32)), dim = -1
     )
     faces = [vert_indices[f].tolist() for f in faces]
     if tris is not None:

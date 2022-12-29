@@ -2,7 +2,7 @@ import glob
 import os
 import pdb
 import random
-from typing import Dict, Optional, Callable
+from typing import List, Dict, Optional, Callable
 
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -144,20 +144,13 @@ class ShapenetDataset(Dataset):
         Returns:
             mesh_dict: Dictionary containing vertices, faces and class label
         """
-        if idx > len(self) - 1:
-            return None
         mesh_file = self.all_files[idx]
-        verts, faces, _ = load_obj(mesh_file)
+        vertices, faces, _ = load_obj(mesh_file)
         faces = faces.verts_idx
-        vertices = verts[:, [2, 0, 1]]
-        vertices = vertices.numpy()
-        faces = faces.numpy()
         vertices = data_utils.center_vertices(vertices)
         vertices = data_utils.normalize_vertices_scale(vertices)
         vertices, faces, _ = data_utils.quantize_process_mesh(vertices, faces)
         faces = data_utils.flatten_faces(faces)
-        vertices = torch.from_numpy(vertices)
-        faces = torch.from_numpy(faces)
         class_label = self.label_dict[mesh_file.split("/")[-4]]
         mesh_dict = {"vertices": vertices, "faces": faces, "class_label": class_label}
         return mesh_dict
