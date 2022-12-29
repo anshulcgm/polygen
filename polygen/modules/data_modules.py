@@ -158,6 +158,7 @@ class ShapenetDataset(Dataset):
         mesh_file = self.all_files[idx]
         vertices, faces, _ = load_obj(mesh_file)
         faces = faces.verts_idx
+        vertices = vertices[:, [2, 0, 1]]
         vertices = data_utils.center_vertices(vertices)
         vertices = data_utils.normalize_vertices_scale(vertices)
         vertices, faces, _ = data_utils.quantize_process_mesh(vertices, faces)
