@@ -11,6 +11,7 @@ import torch
 from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import matplotlib.pyplot as plt
 
 from .truncated_normal import TruncatedNormal
 
