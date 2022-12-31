@@ -7,8 +7,7 @@ import torch
 from polygen.modules.data_modules import (
     ShapenetDataset,
     PolygenDataModule,
-    collate_vertex_model_batch,
-    collate_face_model_batch,
+    CollateMethod
 )
 from polygen.modules.face_model import FaceModel
 from polygen.modules.vertex_model import VertexModel
@@ -27,7 +26,7 @@ def test_shapenet_dataset():
 
 def test_polygen_data_module_vertices():
     vertex_data_module = PolygenDataModule(
-        data_dir=DATA_DIR, collate_fn=collate_vertex_model_batch, batch_size=4
+        data_dir=DATA_DIR, collate_method = CollateMethod.VERTICES, batch_size=4
     )
     vertex_data_module.setup()
 
@@ -61,7 +60,7 @@ def test_polygen_data_module_vertices():
 
 def test_polygen_data_module_faces():
     face_data_module = PolygenDataModule(
-        data_dir=DATA_DIR, collate_fn=collate_face_model_batch, batch_size=4
+        data_dir=DATA_DIR, collate_method=CollateMethod.FACES, batch_size=4
     )
     face_data_module.setup()
 
