@@ -14,7 +14,7 @@ import polygen.utils.data_utils as data_utils
 
 
 def collate_vertex_model_batch(
-    ds: List[Dict[str, torch.Tensor]], apply_random_shift: bool = True
+    ds: List[Dict[str, torch.Tensor]], apply_random_shift: bool = False
 ) -> Dict[str, torch.Tensor]:
     """Applying padding to different length vertex sequences so we can batch them
     Args:
@@ -54,8 +54,8 @@ def collate_vertex_model_batch(
 
 def collate_face_model_batch(
     ds: List[Dict[str, torch.Tensor]],
-    apply_random_shift: bool = True,
-    shuffle_vertices: bool = True,
+    apply_random_shift: bool = False,
+    shuffle_vertices: bool = False,
     quantization_bits: int = 8,
 ) -> Dict[str, torch.Tensor]:
     """Applies padding to different length face sequences so we can batch them
@@ -98,7 +98,7 @@ def collate_face_model_batch(
             )
             curr_faces = face_permutation[element["faces"].to(torch.int64)][None]
         else:
-            curr_faces = faces
+            curr_faces = element["faces"][None]
 
         vertex_padding_size = max_vertices - num_vertices
         initial_faces_size = curr_faces.shape[1]
