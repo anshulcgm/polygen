@@ -13,6 +13,7 @@ import pytorch_lightning as pl
 
 import polygen.utils.data_utils as data_utils
 
+
 class ShapenetDataset(Dataset):
     def __init__(
         self,
@@ -28,9 +29,7 @@ class ShapenetDataset(Dataset):
         self.training_dir = training_dir
         self.default_shapenet = default_shapenet
         if default_shapenet:
-            self.all_files = glob.glob(
-                f"{self.training_dir}/*/*/models/model_normalized.obj"
-            )
+            self.all_files = glob.glob(f"{self.training_dir}/*/*/models/model_normalized.obj")
             self.label_dict = {}
             for i, class_label in enumerate(os.listdir(training_dir)):
                 self.label_dict[class_label] = i
@@ -66,9 +65,11 @@ class ShapenetDataset(Dataset):
         mesh_dict = {"vertices": vertices, "faces": faces, "class_label": class_label}
         return mesh_dict
 
+
 class CollateMethod(Enum):
     VERTICES = 1
     FACES = 2
+
 
 class PolygenDataModule(pl.LightningDataModule):
     def __init__(
@@ -107,7 +108,9 @@ class PolygenDataModule(pl.LightningDataModule):
 
         self.data_dir = data_dir
         self.batch_size = batch_size
-        self.shapenet_dataset = ShapenetDataset(self.data_dir, default_shapenet = default_shapenet, all_files = all_files, label_dict = label_dict)
+        self.shapenet_dataset = ShapenetDataset(
+            self.data_dir, default_shapenet=default_shapenet, all_files=all_files, label_dict=label_dict
+        )
         self.training_split = training_split
         self.val_split = val_split
         self.quantization_bits = quantization_bits
@@ -120,9 +123,7 @@ class PolygenDataModule(pl.LightningDataModule):
         elif collate_method == CollateMethod.FACES:
             self.collate_fn = self.collate_face_model_batch
 
-    def collate_vertex_model_batch(
-        self, ds: List[Dict[str, torch.Tensor]]
-    ) -> Dict[str, torch.Tensor]:
+    def collate_vertex_model_batch(self, ds: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
         """Applying padding to different length vertex sequences so we can batch them
         Args:
             ds: List of dictionaries where each dictionary has information about a 3D object
@@ -142,13 +143,9 @@ class PolygenDataModule(pl.LightningDataModule):
                 vertices = data_utils.random_shift(vertices)
             initial_vertex_size = vertices.shape[0]
             padding_size = max_vertices - initial_vertex_size
-            vertices_permuted = torch.stack(
-                [vertices[..., 2], vertices[..., 1], vertices[..., 0]], dim=-1
-            )
+            vertices_permuted = torch.stack([vertices[..., 2], vertices[..., 1], vertices[..., 0]], dim=-1)
             curr_vertices_flat = vertices_permuted.reshape([-1])
-            vertices_flat[i] = F.pad(curr_vertices_flat + 1, [0, padding_size * 3 + 1])[
-                None
-            ]
+            vertices_flat[i] = F.pad(curr_vertices_flat + 1, [0, padding_size * 3 + 1])[None]
             class_labels[i] = torch.Tensor([element["class_label"]])
             vertices_flat_mask[i] = torch.zeros_like(vertices_flat[i], dtype=torch.float32)
             vertices_flat_mask[i, : initial_vertex_size * 3 + 1] = 1
@@ -157,11 +154,7 @@ class PolygenDataModule(pl.LightningDataModule):
         vertex_model_batch["vertices_flat_mask"] = vertices_flat_mask
         return vertex_model_batch
 
-
-    def collate_face_model_batch(
-        self,
-        ds: List[Dict[str, torch.Tensor]],
-    ) -> Dict[str, torch.Tensor]:
+    def collate_face_model_batch(self, ds: List[Dict[str, torch.Tensor]],) -> Dict[str, torch.Tensor]:
         """Applies padding to different length face sequences so we can batch them
         Args:
             ds: List of dictionaries with each dictionary containing info about a specific 3D object
@@ -192,11 +185,7 @@ class PolygenDataModule(pl.LightningDataModule):
                 vertices = vertices[permutation]
                 vertices = vertices.unsqueeze(0)
                 face_permutation = torch.cat(
-                    [
-                        torch.Tensor([0, 1]).to(torch.int32),
-                        torch.argsort(permutation).to(torch.int32) + 2,
-                    ],
-                    dim=0,
+                    [torch.Tensor([0, 1]).to(torch.int32), torch.argsort(permutation).to(torch.int32) + 2,], dim=0,
                 )
                 curr_faces = face_permutation[element["faces"].to(torch.int64)][None]
             else:
@@ -208,9 +197,7 @@ class PolygenDataModule(pl.LightningDataModule):
             shuffled_faces[i] = F.pad(curr_faces, [0, face_padding_size, 0, 0])
             curr_verts = data_utils.dequantize_verts(vertices, self.quantization_bits)
             face_vertices[i] = F.pad(curr_verts, [0, 0, 0, vertex_padding_size])
-            face_vertices_mask[i] = torch.zeros_like(
-                face_vertices[i][..., 0], dtype=torch.float32
-            )
+            face_vertices_mask[i] = torch.zeros_like(face_vertices[i][..., 0], dtype=torch.float32)
             face_vertices_mask[i, :num_vertices] = 1
             faces_mask[i] = torch.zeros_like(shuffled_faces[i], dtype=torch.float32)
             faces_mask[i, : initial_faces_size + 1] = 1

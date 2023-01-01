@@ -49,26 +49,15 @@ class VertexModel(pl.LightningModule):
         self.quantization_bits = quantization_bits
         self.use_discrete_embeddings = use_discrete_embeddings
         self.decoder = TransformerDecoder(**decoder_config)
-        self.class_embedder = nn.Embedding(
-            num_embeddings=self.num_classes, embedding_dim=self.embedding_dim
-        )
-        self.coord_embedder = nn.Embedding(
-            num_embeddings=3, embedding_dim=self.embedding_dim
-        )
-        self.pos_embedder = nn.Embedding(
-            num_embeddings=self.max_num_input_verts, embedding_dim=self.embedding_dim
-        )
+        self.class_embedder = nn.Embedding(num_embeddings=self.num_classes, embedding_dim=self.embedding_dim)
+        self.coord_embedder = nn.Embedding(num_embeddings=3, embedding_dim=self.embedding_dim)
+        self.pos_embedder = nn.Embedding(num_embeddings=self.max_num_input_verts, embedding_dim=self.embedding_dim)
         self.vert_embedder_discrete = nn.Embedding(
-            num_embeddings=2 ** self.quantization_bits + 1,
-            embedding_dim=self.embedding_dim,
+            num_embeddings=2 ** self.quantization_bits + 1, embedding_dim=self.embedding_dim,
         )
-        self.linear_layer = nn.Linear(
-            self.embedding_dim, 2 ** self.quantization_bits + 1
-        )
+        self.linear_layer = nn.Linear(self.embedding_dim, 2 ** self.quantization_bits + 1)
 
-        zero_embeddings_tensor = torch.randn(
-            [1, 1, self.embedding_dim], device=self.device
-        )
+        zero_embeddings_tensor = torch.randn([1, 1, self.embedding_dim], device=self.device)
         self.zero_embed = nn.Parameter(zero_embeddings_tensor)
 
         self.automatic_optimization = False
@@ -83,9 +72,7 @@ class VertexModel(pl.LightningModule):
         """
         return self.class_embedder(labels.to(torch.int64))
 
-    def _prepare_context(
-        self, context: Dict[str, torch.Tensor]
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+    def _prepare_context(self, context: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """Prepares global context embedding
 
         Args:
@@ -100,9 +87,7 @@ class VertexModel(pl.LightningModule):
             global_context_embedding = None
         return global_context_embedding, None
 
-    def _embed_inputs(
-        self, vertices: torch.Tensor, global_context_embedding: torch.Tensor = None
-    ) -> torch.Tensor:
+    def _embed_inputs(self, vertices: torch.Tensor, global_context_embedding: torch.Tensor = None) -> torch.Tensor:
         """
         Embeds flat vertices and adds position and coordinate information.
 
@@ -125,9 +110,7 @@ class VertexModel(pl.LightningModule):
             vertices
         )  # Vert embeddings will be of shape [batch_size, seq_length, embed_size]
         if global_context_embedding is None:
-            zero_embed_tiled = torch.repeat_interleave(
-                self.zero_embed, batch_size, dim=0
-            )
+            zero_embed_tiled = torch.repeat_interleave(self.zero_embed, batch_size, dim=0)
         else:
             zero_embed_tiled = global_context_embedding[:, None].to(
                 torch.float32
@@ -175,17 +158,13 @@ class VertexModel(pl.LightningModule):
         Returns:
             logits: Logits that can be used to create a categorical distribution to sample the next vertex.
         """
-        decoder_inputs = self._embed_inputs(
-            vertices.to(torch.int64), global_context_embedding
-        )
+        decoder_inputs = self._embed_inputs(vertices.to(torch.int64), global_context_embedding)
         if cache is not None:
             decoder_inputs = decoder_inputs[-1:, :]
         if sequential_context_embedding is not None:
             sequential_context_embedding = sequential_context_embedding.transpose(0, 1)
         outputs = self.decoder(
-            decoder_inputs,
-            sequential_context_embeddings=sequential_context_embedding,
-            cache=cache,
+            decoder_inputs, sequential_context_embeddings=sequential_context_embedding, cache=cache,
         ).transpose(
             0, 1
         )  # Transpose to convert from [seq_length, batch_size, embedding_dim] to [batch_size, seq_length, embedding_dim]
@@ -209,15 +188,11 @@ class VertexModel(pl.LightningModule):
         global_context, seq_context = self._prepare_context(batch)
         vertices = batch["vertices_flat"]
         logits = self._create_dist(
-            vertices[:, :-1],
-            global_context_embedding=global_context,
-            sequential_context_embedding=seq_context,
+            vertices[:, :-1], global_context_embedding=global_context, sequential_context_embedding=seq_context,
         )
         return logits
 
-    def training_step(
-        self, vertex_model_batch: Dict[str, torch.Tensor], batch_idx: int
-    ) -> torch.float32:
+    def training_step(self, vertex_model_batch: Dict[str, torch.Tensor], batch_idx: int) -> torch.float32:
         """Pytorch Lightning training step method
 
         Args:
@@ -231,12 +206,9 @@ class VertexModel(pl.LightningModule):
         vertex_model_scheduler = self.lr_schedulers()
         vertex_model_optimizer.zero_grad()
         vertex_logits = self(vertex_model_batch)
-        vertex_pred_dist = torch.distributions.categorical.Categorical(
-            logits=vertex_logits
-        )
+        vertex_pred_dist = torch.distributions.categorical.Categorical(logits=vertex_logits)
         vertex_loss = -torch.sum(
-            vertex_pred_dist.log_prob(vertex_model_batch["vertices_flat"])
-            * vertex_model_batch["vertices_flat_mask"]
+            vertex_pred_dist.log_prob(vertex_model_batch["vertices_flat"]) * vertex_model_batch["vertices_flat_mask"]
         )
         self.log("train_loss", vertex_loss)
         self.manual_backward(vertex_loss)
@@ -252,17 +224,13 @@ class VertexModel(pl.LightningModule):
             dict: A dictionary with optimizer and learning rate scheduler
         """
         vertex_model_optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
-        vertex_model_scheduler = torch.optim.lr_scheduler.StepLR(
-            vertex_model_optimizer, step_size=5000, gamma=0.9995
-        )
+        vertex_model_scheduler = torch.optim.lr_scheduler.StepLR(vertex_model_optimizer, step_size=5000, gamma=0.9995)
         return {
             "optimizer": vertex_model_optimizer,
             "lr_scheduler": vertex_model_scheduler,
         }
 
-    def validation_step(
-        self, val_batch: Dict[str, torch.Tensor], batch_idx: int
-    ) -> torch.float32:
+    def validation_step(self, val_batch: Dict[str, torch.Tensor], batch_idx: int) -> torch.float32:
         """Validation step for Pytorch Lightning
 
         Args:
@@ -274,12 +242,9 @@ class VertexModel(pl.LightningModule):
         """
         with torch.no_grad():
             vertex_logits = self(val_batch)
-            vertex_pred_dist = torch.distributions.categorical.Categorical(
-                logits=vertex_logits
-            )
+            vertex_pred_dist = torch.distributions.categorical.Categorical(logits=vertex_logits)
             vertex_loss = -torch.sum(
-                vertex_pred_dist.log_prob(val_batch["vertices_flat"])
-                * val_batch["vertices_flat_mask"]
+                vertex_pred_dist.log_prob(val_batch["vertices_flat"]) * val_batch["vertices_flat_mask"]
             )
         self.log("val_loss", vertex_loss)
         return vertex_loss
@@ -327,9 +292,7 @@ class VertexModel(pl.LightningModule):
             seq_context = seq_context[:num_samples]
 
         def _loop_body(
-            i: int,
-            samples: torch.Tensor,
-            cache: Optional[List[Dict[str, torch.Tensor]]] = None,
+            i: int, samples: torch.Tensor, cache: Optional[List[Dict[str, torch.Tensor]]] = None,
         ) -> Tuple[int, torch.Tensor]:
             """While-loop body for autoregression calculation.
 
@@ -381,9 +344,7 @@ class VertexModel(pl.LightningModule):
         completed = torch.any(
             completed_samples_boolean, dim=-1
         )  # Indicates which samples are completed of shape [num_samples,]
-        stop_index_completed = torch.argmax(
-            completed_samples_boolean.to(torch.int32), dim=-1
-        ).to(
+        stop_index_completed = torch.argmax(completed_samples_boolean.to(torch.int32), dim=-1).to(
             torch.int32
         )  # Indicates where the stopping token occurs in each batch of samples
         stop_index_incomplete = (
@@ -394,14 +355,10 @@ class VertexModel(pl.LightningModule):
         )  # Stopping Indices of each sample, if completed is true, then stopping index is taken from completed stop index tensor
         num_vertices = torch.floor_divide(stop_index, 3)
 
-        samples = (
-            samples[:, : (torch.max(num_vertices) * 3)] - 1
-        )  # Selects last possible stopping index
+        samples = samples[:, : (torch.max(num_vertices) * 3)] - 1  # Selects last possible stopping index
         verts_dequantized = dequantize_verts(samples, self.quantization_bits)
         # Converts vertices to [-1, 1] range
-        vertices = torch.reshape(
-            verts_dequantized, [num_samples, -1, 3]
-        )  # Reshapes into 3D Tensors
+        vertices = torch.reshape(verts_dequantized, [num_samples, -1, 3])  # Reshapes into 3D Tensors
         vertices = torch.stack(
             [vertices[..., 2], vertices[..., 1], vertices[..., 0]], dim=-1
         )  # Converts from z-y-x to x-y-z.
@@ -410,25 +367,17 @@ class VertexModel(pl.LightningModule):
         pad_size = max_sample_length - vertices.shape[1]
         vertices = F.pad(vertices, [0, 0, 0, pad_size, 0, 0])
 
-        vertices_mask = (
-            torch.arange(max_sample_length)[None] < num_vertices[:, None]
-        ).to(
+        vertices_mask = (torch.arange(max_sample_length)[None] < num_vertices[:, None]).to(
             torch.float32
         )  # Provides a mask of which vertices to zero out as they were produced after stop token for that batch ended
 
         if recenter_verts:
-            vert_max, _ = torch.max(
-                vertices - 1e10 * (1.0 - vertices_mask)[..., None], dim=1, keepdim=True
-            )
-            vert_min, _ = torch.min(
-                vertices + 1e10 * (1.0 - vertices_mask)[..., None], dim=1, keepdim=True
-            )
+            vert_max, _ = torch.max(vertices - 1e10 * (1.0 - vertices_mask)[..., None], dim=1, keepdim=True)
+            vert_min, _ = torch.min(vertices + 1e10 * (1.0 - vertices_mask)[..., None], dim=1, keepdim=True)
             vert_centers = 0.5 * (vert_max + vert_min)
             vertices = vertices - vert_centers
 
-        vertices = (
-            vertices * vertices_mask[..., None]
-        )  # Zeros out vertices produced after stop token
+        vertices = vertices * vertices_mask[..., None]  # Zeros out vertices produced after stop token
 
         if only_return_complete:
             vertices = vertices[completed]
@@ -470,9 +419,7 @@ class ImageToVertexModel(VertexModel):
         self.res_net = PolygenResnet()
         self.embedder = nn.Linear(2, self.embedding_dim)
 
-    def _prepare_context(
-        self, context: Dict[str, torch.Tensor]
-    ) -> Tuple[None, torch.Tensor]:
+    def _prepare_context(self, context: Dict[str, torch.Tensor]) -> Tuple[None, torch.Tensor]:
         """Creates image embeddings using resnet and flattened image
 
         Args:
@@ -490,8 +437,6 @@ class ImageToVertexModel(VertexModel):
         image_coord_embeddings = self.embedder(image_coords)
         image_embeddings = image_embeddings + image_coord_embeddings[None]
         batch_size = image_embeddings.shape[0]
-        sequential_context_embeddings = torch.reshape(
-            image_embeddings, [batch_size, -1, self.embedding_dim]
-        )
+        sequential_context_embeddings = torch.reshape(image_embeddings, [batch_size, -1, self.embedding_dim])
 
         return None, sequential_context_embeddings

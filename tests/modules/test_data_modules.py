@@ -4,11 +4,7 @@ import random
 
 import torch
 
-from polygen.modules.data_modules import (
-    ShapenetDataset,
-    PolygenDataModule,
-    CollateMethod
-)
+from polygen.modules.data_modules import ShapenetDataset, PolygenDataModule, CollateMethod
 from polygen.modules.face_model import FaceModel
 from polygen.modules.vertex_model import VertexModel
 
@@ -25,9 +21,7 @@ def test_shapenet_dataset():
 
 
 def test_polygen_data_module_vertices():
-    vertex_data_module = PolygenDataModule(
-        data_dir=DATA_DIR, collate_method = CollateMethod.VERTICES, batch_size=4
-    )
+    vertex_data_module = PolygenDataModule(data_dir=DATA_DIR, collate_method=CollateMethod.VERTICES, batch_size=4)
     vertex_data_module.setup()
 
     train_dataloader = vertex_data_module.train_dataloader()
@@ -59,9 +53,7 @@ def test_polygen_data_module_vertices():
 
 
 def test_polygen_data_module_faces():
-    face_data_module = PolygenDataModule(
-        data_dir=DATA_DIR, collate_method=CollateMethod.FACES, batch_size=4
-    )
+    face_data_module = PolygenDataModule(data_dir=DATA_DIR, collate_method=CollateMethod.FACES, batch_size=4)
     face_data_module.setup()
 
     train_dataloader = face_data_module.train_dataloader()
@@ -81,10 +73,7 @@ def test_polygen_data_module_faces():
     }
 
     face_model = FaceModel(
-        encoder_config=transformer_config,
-        decoder_config=transformer_config,
-        class_conditional=False,
-        num_classes=55,
+        encoder_config=transformer_config, decoder_config=transformer_config, class_conditional=False, num_classes=55,
     )
 
     logits = face_model(train_batch)
