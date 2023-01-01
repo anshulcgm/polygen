@@ -19,9 +19,11 @@ def main() -> None:
     batch_size = vertex_model_config.batch_size
     dataset_length = len(vertex_data_module.shapenet_dataset)
     num_epochs = training_steps * batch_size // (dataset_length)
-
+    
     trainer = pl.Trainer(
-        accelerator=vertex_model_config.accelerator, gpus=vertex_model_config.num_gpus, max_epochs=num_epochs
+        accelerator=vertex_model_config.accelerator, 
+        gpus=vertex_model_config.num_gpus, 
+        max_epochs=num_epochs
     )
     trainer.fit(vertex_model, vertex_data_module)
 

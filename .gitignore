@@ -2,6 +2,7 @@ renderings/
 __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
+lightning_logs/
 *.txt
 *.err
 *.out

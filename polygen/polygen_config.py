@@ -48,14 +48,14 @@ class VertexModelConfig:
             training_steps: How many total steps we want to train for
         """
 
-        num_gpus = torch.cuda.device_count()
+        self.num_gpus = torch.cuda.device_count()
         self.accelerator = accelerator
         if accelerator.startswith("ddp"):
-            self.batch_size = batch_size // num_gpus
+            self.batch_size = batch_size // self.num_gpus
         else:
             self.batch_size = batch_size
 
-        self.data_module = PolygenDataModule(
+        self.vertex_data_module = PolygenDataModule(
             data_dir=dataset_path,
             batch_size=self.batch_size,
             collate_method=CollateMethod.VERTICES,
