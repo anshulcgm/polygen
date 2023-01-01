@@ -3,7 +3,7 @@ import glob
 import os
 import pdb
 import random
-from typing import List, Dict, Optional, Callable
+from typing import List, Dict, Optional
 
 import torch
 import torch.nn.functional as F
