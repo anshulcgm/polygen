@@ -73,7 +73,10 @@ def test_polygen_data_module_faces():
     }
 
     face_model = FaceModel(
-        encoder_config=transformer_config, decoder_config=transformer_config, class_conditional=False, num_classes=55,
+        encoder_config=transformer_config,
+        decoder_config=transformer_config,
+        class_conditional=False,
+        num_classes=55,
     )
 
     logits = face_model(train_batch)

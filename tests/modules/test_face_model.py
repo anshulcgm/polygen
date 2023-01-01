@@ -19,7 +19,10 @@ def test_face_model_forward():
     }
 
     face_model = FaceModel(
-        encoder_config=transformer_config, decoder_config=transformer_config, class_conditional=True, num_classes=10,
+        encoder_config=transformer_config,
+        decoder_config=transformer_config,
+        class_conditional=True,
+        num_classes=10,
     )
     class_labels = torch.randint(low=0, high=10, size=[4])
     vertices = torch.rand(size=[4, 20, 3]) - 0.5
@@ -43,7 +46,10 @@ def test_face_model_sampling():
         "num_layers": 2,
     }
     face_model = FaceModel(
-        encoder_config=transformer_config, decoder_config=transformer_config, class_conditional=True, num_classes=10,
+        encoder_config=transformer_config,
+        decoder_config=transformer_config,
+        class_conditional=True,
+        num_classes=10,
     )
 
     class_labels = torch.randint(low=0, high=10, size=[4])

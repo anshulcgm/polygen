@@ -156,7 +156,11 @@ class FaceModel(pl.LightningModule):
                         The first two dimensions are transposed such that they can be fed directly to the decoder.
         """
         face_embeddings = torch.zeros(
-            size=[vertex_embeddings.shape[0], faces_long.shape[1], vertex_embeddings.shape[2],]
+            size=[
+                vertex_embeddings.shape[0],
+                faces_long.shape[1],
+                vertex_embeddings.shape[2],
+            ]
         )
 
         for i in range(vertex_embeddings.shape[0]):
@@ -218,7 +222,11 @@ class FaceModel(pl.LightningModule):
             logits: Logits of shape [batch_size, sequence_length, num_vertices] that can be used to create a categorical distribution over vertex indices.
         """
 
-        decoder_inputs = self._embed_inputs(faces_long.to(torch.int64), vertex_embeddings, global_context_embedding,)
+        decoder_inputs = self._embed_inputs(
+            faces_long.to(torch.int64),
+            vertex_embeddings,
+            global_context_embedding,
+        )
 
         # check whether we are starting a sequence, or continuing a previous one
         if cache is not None:
@@ -404,7 +412,8 @@ class FaceModel(pl.LightningModule):
         )  # Tells us which samples are complete and which aren't
         sample_length = samples.shape[-1]  # Number of sampled faces
         max_one_ind, _ = torch.max(
-            torch.arange(sample_length)[None] * (samples == 1).to(torch.int32), dim=-1,
+            torch.arange(sample_length)[None] * (samples == 1).to(torch.int32),
+            dim=-1,
         )  # Checking for new face tokens
         max_one_ind = max_one_ind.to(torch.int32)
         zero_inds = (torch.argmax((completed_samples_boolean).to(torch.int32), dim=-1)).to(

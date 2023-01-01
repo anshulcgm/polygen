@@ -24,8 +24,8 @@ class VertexModelConfig:
         use_discrete_embeddings: bool,
         learning_rate: float,
         step_size: int,
-        training_steps: int,
         gamma: float,
+        training_steps: int,
     ) -> None:
         """Initializes vertex model and vertex data module
 
@@ -45,32 +45,36 @@ class VertexModelConfig:
             learning_rate: Learning rate for adam optimizer
             step_size: How often to use lr scheduler
             gamma: Decay rate for lr scheduler
+            training_steps: How many total steps we want to train for
         """
 
         num_gpus = torch.cuda.device_count()
+        self.accelerator = accelerator
         if accelerator.startswith("ddp"):
             self.batch_size = batch_size // num_gpus
         else:
             self.batch_size = batch_size
 
         self.data_module = PolygenDataModule(
-            data_dir=dataset_path, 
+            data_dir=dataset_path,
             batch_size=self.batch_size,
             collate_method=CollateMethod.VERTICES,
-            training_split = training_split,
-            val_split = val_split,
-            quantization_bits = quantization_bits,
-            apply_random_shift_vertices = apply_random_shift,
+            training_split=training_split,
+            val_split=val_split,
+            quantization_bits=quantization_bits,
+            apply_random_shift_vertices=apply_random_shift,
         )
 
         self.vertex_model = VertexModel(
-            decoder_config = decoder_config,
-            quantization_bits = quantization_bits,
-            class_conditional = class_conditional,
-            num_classes = num_classes,
-            max_num_input_verts = max_num_input_verts,
-            use_discrete_embeddings = use_discrete_embeddings,
-            learning_rate = learning_rate,
-            step_size = step_size,
-            gamma = gamma,
+            decoder_config=decoder_config,
+            quantization_bits=quantization_bits,
+            class_conditional=class_conditional,
+            num_classes=num_classes,
+            max_num_input_verts=max_num_input_verts,
+            use_discrete_embeddings=use_discrete_embeddings,
+            learning_rate=learning_rate,
+            step_size=step_size,
+            gamma=gamma,
         )
+
+        self.training_steps = training_steps

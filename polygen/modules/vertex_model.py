@@ -31,7 +31,7 @@ class VertexModel(pl.LightningModule):
         use_discrete_embeddings: bool = True,
         learning_rate: float = 3e-4,
         step_size: int = 5000,
-        gamma: float = 0.9995
+        gamma: float = 0.9995,
     ) -> None:
         """Initializes VertexModel. The encoder can be a model with a Resnet backbone for image contexts and voxel contexts.
         However for class label context, the encoder is simply the class embedder.
@@ -60,7 +60,8 @@ class VertexModel(pl.LightningModule):
         self.coord_embedder = nn.Embedding(num_embeddings=3, embedding_dim=self.embedding_dim)
         self.pos_embedder = nn.Embedding(num_embeddings=self.max_num_input_verts, embedding_dim=self.embedding_dim)
         self.vert_embedder_discrete = nn.Embedding(
-            num_embeddings=2 ** self.quantization_bits + 1, embedding_dim=self.embedding_dim,
+            num_embeddings=2 ** self.quantization_bits + 1,
+            embedding_dim=self.embedding_dim,
         )
         self.linear_layer = nn.Linear(self.embedding_dim, 2 ** self.quantization_bits + 1)
 
@@ -173,7 +174,9 @@ class VertexModel(pl.LightningModule):
         if sequential_context_embedding is not None:
             sequential_context_embedding = sequential_context_embedding.transpose(0, 1)
         outputs = self.decoder(
-            decoder_inputs, sequential_context_embeddings=sequential_context_embedding, cache=cache,
+            decoder_inputs,
+            sequential_context_embeddings=sequential_context_embedding,
+            cache=cache,
         ).transpose(
             0, 1
         )  # Transpose to convert from [seq_length, batch_size, embedding_dim] to [batch_size, seq_length, embedding_dim]
@@ -197,7 +200,9 @@ class VertexModel(pl.LightningModule):
         global_context, seq_context = self._prepare_context(batch)
         vertices = batch["vertices_flat"]
         logits = self._create_dist(
-            vertices[:, :-1], global_context_embedding=global_context, sequential_context_embedding=seq_context,
+            vertices[:, :-1],
+            global_context_embedding=global_context,
+            sequential_context_embedding=seq_context,
         )
         return logits
 
@@ -226,7 +231,9 @@ class VertexModel(pl.LightningModule):
             dict: A dictionary with optimizer and learning rate scheduler
         """
         vertex_model_optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        vertex_model_scheduler = torch.optim.lr_scheduler.StepLR(vertex_model_optimizer, step_size=self.step_size, gamma=self.gamma)
+        vertex_model_scheduler = torch.optim.lr_scheduler.StepLR(
+            vertex_model_optimizer, step_size=self.step_size, gamma=self.gamma
+        )
         return {
             "optimizer": vertex_model_optimizer,
             "lr_scheduler": vertex_model_scheduler,
@@ -294,7 +301,9 @@ class VertexModel(pl.LightningModule):
             seq_context = seq_context[:num_samples]
 
         def _loop_body(
-            i: int, samples: torch.Tensor, cache: Optional[List[Dict[str, torch.Tensor]]] = None,
+            i: int,
+            samples: torch.Tensor,
+            cache: Optional[List[Dict[str, torch.Tensor]]] = None,
         ) -> Tuple[int, torch.Tensor]:
             """While-loop body for autoregression calculation.
 

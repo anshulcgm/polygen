@@ -115,7 +115,12 @@ class PolygenEncoder(pl.LightningModule):
         self.num_layers = num_layers
 
         self.encoder = nn.TransformerEncoder(
-            PolygenEncoderLayer(d_model=hidden_size, nhead=num_heads, dim_feedforward=fc_size, dropout=dropout_rate,),
+            PolygenEncoderLayer(
+                d_model=hidden_size,
+                nhead=num_heads,
+                dim_feedforward=fc_size,
+                dropout=dropout_rate,
+            ),
             num_layers=num_layers,
         )
         self.norm = LayerNorm(hidden_size)

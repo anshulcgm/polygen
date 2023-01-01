@@ -154,7 +154,10 @@ class PolygenDataModule(pl.LightningDataModule):
         vertex_model_batch["vertices_flat_mask"] = vertices_flat_mask
         return vertex_model_batch
 
-    def collate_face_model_batch(self, ds: List[Dict[str, torch.Tensor]],) -> Dict[str, torch.Tensor]:
+    def collate_face_model_batch(
+        self,
+        ds: List[Dict[str, torch.Tensor]],
+    ) -> Dict[str, torch.Tensor]:
         """Applies padding to different length face sequences so we can batch them
         Args:
             ds: List of dictionaries with each dictionary containing info about a specific 3D object
@@ -185,7 +188,11 @@ class PolygenDataModule(pl.LightningDataModule):
                 vertices = vertices[permutation]
                 vertices = vertices.unsqueeze(0)
                 face_permutation = torch.cat(
-                    [torch.Tensor([0, 1]).to(torch.int32), torch.argsort(permutation).to(torch.int32) + 2,], dim=0,
+                    [
+                        torch.Tensor([0, 1]).to(torch.int32),
+                        torch.argsort(permutation).to(torch.int32) + 2,
+                    ],
+                    dim=0,
                 )
                 curr_faces = face_permutation[element["faces"].to(torch.int64)][None]
             else:

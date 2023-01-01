@@ -39,7 +39,10 @@ def random_shift(vertices: torch.Tensor, shift_factor: float = 0.25) -> torch.Te
     negative_condition_tensor = max_negative_shift > 1e-9
     max_negative_shift = torch.where(negative_condition_tensor, max_negative_shift, torch.Tensor([1e-9, 1e-9, 1e-9]))
     normal_dist = TruncatedNormal(
-        loc=torch.zeros((1, 3)), scale=shift_factor * 255, a=-max_negative_shift, b=max_positive_shift,
+        loc=torch.zeros((1, 3)),
+        scale=shift_factor * 255,
+        a=-max_negative_shift,
+        b=max_positive_shift,
     )
     shift = normal_dist.sample().to(torch.int32)
     vertices += shift
@@ -196,7 +199,10 @@ def argmin(arr: List[float]) -> int:
 
 
 def quantize_process_mesh(
-    vertices: torch.Tensor, faces: List[List[int]], tris: Optional[List[int]] = None, quantization_bits: int = 8,
+    vertices: torch.Tensor,
+    faces: List[List[int]],
+    tris: Optional[List[int]] = None,
+    quantization_bits: int = 8,
 ) -> Tuple[torch.Tensor, List[List[int]], Optional[torch.Tensor]]:
     """Quantize vertices, remove resulting duplicates and reindex faces
 

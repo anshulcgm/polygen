@@ -35,7 +35,13 @@ class TruncatedStandardNormal(Distribution):
         super(TruncatedStandardNormal, self).__init__(batch_shape, validate_args=validate_args)
         if self.a.dtype != self.b.dtype:
             raise ValueError("Truncation bounds types are different")
-        if any((self.a >= self.b).view(-1,).tolist()):
+        if any(
+            (self.a >= self.b)
+            .view(
+                -1,
+            )
+            .tolist()
+        ):
             raise ValueError("Incorrect truncation range")
         eps = torch.finfo(self.a.dtype).eps
         self._dtype_min_gt_0 = eps

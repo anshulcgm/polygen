@@ -95,7 +95,11 @@ class PolygenDecoderLayer(nn.TransformerDecoderLayer):
         if memory is not None:
             tgt2 = self.norm2(tgt)
             tgt2 = self.multihead_attn(
-                tgt, memory.float(), memory.float(), attn_mask=memory_mask, key_padding_mask=memory_key_padding_mask,
+                tgt,
+                memory.float(),
+                memory.float(),
+                attn_mask=memory_mask,
+                key_padding_mask=memory_key_padding_mask,
             )[0]
             if self.re_zero:
                 tgt2 = tgt2 * self.beta
@@ -118,7 +122,10 @@ class PolygenDecoder(pl.LightningModule):
     """
 
     def __init__(
-        self, decoder_layer: nn.TransformerDecoderLayer, num_layers: int, norm: Optional[nn.Module] = None,
+        self,
+        decoder_layer: nn.TransformerDecoderLayer,
+        num_layers: int,
+        norm: Optional[nn.Module] = None,
     ) -> None:
         """
         Initialization of PolygenDecoder
@@ -204,7 +211,12 @@ class TransformerDecoder(pl.LightningModule):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.decoder = PolygenDecoder(
-            PolygenDecoderLayer(d_model=hidden_size, nhead=num_heads, dim_feedforward=fc_size, dropout=dropout_rate,),
+            PolygenDecoderLayer(
+                d_model=hidden_size,
+                nhead=num_heads,
+                dim_feedforward=fc_size,
+                dropout=dropout_rate,
+            ),
             num_layers=num_layers,
             norm=LayerNorm(self.hidden_size),
         )
