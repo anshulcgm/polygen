@@ -100,7 +100,7 @@ class PolygenDataModule(pl.LightningDataModule):
             label_dict: Mapping of .obj file to class label (needs to be provided if default_shapnet = false)
             apply_random_shift_vertices: Whether or not we're applying random shift to vertices for vertex model
             apply_random_shift_faces: Whether or not we're applying random shift to vertices for face model
-            shuffle_vertices: Whether or not we're shuffling the order of vertices for face model
+            shuffle_vertices: Whether or not we're shuffling the order of vertices during batch generation for face model
         """
         super().__init__()
 

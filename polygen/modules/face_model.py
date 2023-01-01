@@ -25,6 +25,9 @@ class FaceModel(pl.LightningModule):
         use_discrete_vertex_embeddings: bool = True,
         quantization_bits: int = 8,
         max_seq_length: int = 5000,
+        learning_rate: float = 3e-4,
+        step_size: int = 5000,
+        gamma: float = 0.9995,
     ) -> None:
         """Autoregressive generative model of face vertices
 
@@ -37,6 +40,9 @@ class FaceModel(pl.LightningModule):
             use_discrete_vertex_embeddings: Are the inputted vertices quantized
             quantization_bits: How many bits are we using to encode the vertices
             max_seq_length: Max number of face indices we can generate
+            learning_rate: Learning rate for adam optimizer
+            step_size: How often to use lr scheduler
+            gamma: Decay rate for lr scheduler
         """
         super(FaceModel, self).__init__()
         self.embedding_dim = decoder_config["hidden_size"]
@@ -63,7 +69,9 @@ class FaceModel(pl.LightningModule):
         zero_embeddings_tensor = torch.randn([1, 1, self.embedding_dim], device=self.device)
         self.zero_embed = nn.Parameter(zero_embeddings_tensor)
 
-        self.automatic_optimization = False
+        self.learning_rate = learning_rate
+        self.step_size = step_size
+        self.gamma = gamma
 
     def _embed_class_label(self, labels: torch.Tensor) -> torch.Tensor:
         """Embeds class labels if class_conditional is true
@@ -289,15 +297,10 @@ class FaceModel(pl.LightningModule):
         Returns:
             face_loss: NLL loss of generated categorical distribution
         """
-
-        face_model_optimizer = self.optimizers()
-        face_model_optimizer.zero_grad()
         face_logits = self(face_model_batch)
         face_pred_dist = torch.distributions.categorical.Categorical(logits=face_logits)
         face_loss = -torch.sum(face_pred_dist.log_prob(face_model_batch["faces"]) * face_model_batch["faces_mask"])
         self.log("train_loss", face_loss)
-        self.manual_backward(face_loss)
-        face_model_optimizer.step()
         return face_loss
 
     def validation_step(self, val_batch, batch_idx):
@@ -324,8 +327,8 @@ class FaceModel(pl.LightningModule):
         Returns:
             dict: Dictionary with optimizer and lr scheduler
         """
-        face_model_optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
-        face_model_scheduler = torch.optim.lr_scheduler.StepLR(face_model_optimizer, step_size=5000, gamma=0.999)
+        face_model_optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        face_model_scheduler = torch.optim.lr_scheduler.StepLR(face_model_optimizer, step_size=self.step_size, gamma=self.gamma)
         return {"optimizer": face_model_optimizer, "lr_scheduler": face_model_scheduler}
 
     def sample(
