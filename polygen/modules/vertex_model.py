@@ -29,6 +29,9 @@ class VertexModel(pl.LightningModule):
         num_classes: int = 55,
         max_num_input_verts: int = 2500,
         use_discrete_embeddings: bool = True,
+        learning_rate: float = 3e-4,
+        step_size: int = 5000,
+        gamma: float = 0.9995
     ) -> None:
         """Initializes VertexModel. The encoder can be a model with a Resnet backbone for image contexts and voxel contexts.
         However for class label context, the encoder is simply the class embedder.
@@ -39,6 +42,10 @@ class VertexModel(pl.LightningModule):
             class_conditional: If True, then condition on learned class embeddings
             num_classes: Number of classes to condition on
             max_num_input_verts:  Maximum number of vertices. Used for learned position embeddings.
+            use_discrete_embeddings: Discrete embedding layers or linear layers for vertices
+            learning_rate: Learning rate for adam optimizer
+            step_size: How often to use lr scheduler
+            gamma: Decay rate for lr scheduler
         """
 
         super(VertexModel, self).__init__()
@@ -60,7 +67,9 @@ class VertexModel(pl.LightningModule):
         zero_embeddings_tensor = torch.randn([1, 1, self.embedding_dim], device=self.device)
         self.zero_embed = nn.Parameter(zero_embeddings_tensor)
 
-        self.automatic_optimization = False
+        self.learning_rate = learning_rate
+        self.step_size = step_size
+        self.gamma = gamma
 
     def _embed_class_label(self, labels: torch.Tensor) -> torch.Tensor:
         """Embeds Class Label with learned embedding matrix
@@ -202,19 +211,12 @@ class VertexModel(pl.LightningModule):
         Returns:
             vertex_loss: NLL loss for estimated categorical distribution
         """
-        vertex_model_optimizer = self.optimizers()
-        vertex_model_scheduler = self.lr_schedulers()
-        vertex_model_optimizer.zero_grad()
         vertex_logits = self(vertex_model_batch)
         vertex_pred_dist = torch.distributions.categorical.Categorical(logits=vertex_logits)
         vertex_loss = -torch.sum(
             vertex_pred_dist.log_prob(vertex_model_batch["vertices_flat"]) * vertex_model_batch["vertices_flat_mask"]
         )
         self.log("train_loss", vertex_loss)
-        self.manual_backward(vertex_loss)
-        nn.utils.clip_grad_norm_(self.parameters(), 1.0)
-        vertex_model_optimizer.step()
-        vertex_model_scheduler.step()
         return vertex_loss
 
     def configure_optimizers(self) -> Dict[str, Any]:
@@ -223,8 +225,8 @@ class VertexModel(pl.LightningModule):
         Returns:
             dict: A dictionary with optimizer and learning rate scheduler
         """
-        vertex_model_optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
-        vertex_model_scheduler = torch.optim.lr_scheduler.StepLR(vertex_model_optimizer, step_size=5000, gamma=0.9995)
+        vertex_model_optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        vertex_model_scheduler = torch.optim.lr_scheduler.StepLR(vertex_model_optimizer, step_size=self.step_size, gamma=self.gamma)
         return {
             "optimizer": vertex_model_optimizer,
             "lr_scheduler": vertex_model_scheduler,

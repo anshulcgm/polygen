@@ -90,9 +90,9 @@ class PolygenDataModule(pl.LightningDataModule):
         """
         Args:
             data_dir: Root directory for shapenet dataset
+            collate_method: Whether to collate vertices or faces
             batch_size: How many 3D objects in one batch
             training_split: What proportion of data to use for training the model
-            collate_method: Whether we're collating data for vertex model or face model
             val_split: What proportion of data to use for validation
             default_shapenet: Whether or not we are using the default shapenet data structure
             quantization_bits: How many bits we are using to quantize the vertices
