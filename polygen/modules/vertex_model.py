@@ -49,11 +49,12 @@ class VertexModel(pl.LightningModule):
         """
 
         super(VertexModel, self).__init__()
+        self.decoder_config = decoder_config
+        self.quantization_bits = quantization_bits
         self.embedding_dim = decoder_config["hidden_size"]
         self.class_conditional = class_conditional
         self.num_classes = num_classes
         self.max_num_input_verts = max_num_input_verts
-        self.quantization_bits = quantization_bits
         self.use_discrete_embeddings = use_discrete_embeddings
         self.decoder = TransformerDecoder(**decoder_config)
         self.class_embedder = nn.Embedding(num_embeddings=self.num_classes, embedding_dim=self.embedding_dim)

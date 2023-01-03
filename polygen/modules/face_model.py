@@ -328,7 +328,9 @@ class FaceModel(pl.LightningModule):
             dict: Dictionary with optimizer and lr scheduler
         """
         face_model_optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        face_model_scheduler = torch.optim.lr_scheduler.StepLR(face_model_optimizer, step_size=self.step_size, gamma=self.gamma)
+        face_model_scheduler = torch.optim.lr_scheduler.StepLR(
+            face_model_optimizer, step_size=self.step_size, gamma=self.gamma
+        )
         return {"optimizer": face_model_optimizer, "lr_scheduler": face_model_scheduler}
 
     def sample(

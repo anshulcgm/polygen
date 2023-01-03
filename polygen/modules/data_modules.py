@@ -109,7 +109,10 @@ class PolygenDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.shapenet_dataset = ShapenetDataset(
-            self.data_dir, default_shapenet=default_shapenet, all_files=all_files, label_dict=label_dict
+            self.data_dir,
+            default_shapenet=default_shapenet,
+            all_files=all_files,
+            label_dict=label_dict,
         )
         self.training_split = training_split
         self.val_split = val_split

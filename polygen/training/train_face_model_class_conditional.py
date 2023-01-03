@@ -19,11 +19,11 @@ def main() -> None:
     batch_size = face_model_config.batch_size
     dataset_length = len(face_data_module.shapenet_dataset)
     num_epochs = training_steps * batch_size // (dataset_length)
-    
+
     trainer = pl.Trainer(
-        accelerator=face_model_config.accelerator, 
-        gpus=face_model_config.num_gpus, 
-        max_epochs=num_epochs
+        accelerator=face_model_config.accelerator,
+        gpus=face_model_config.num_gpus,
+        max_epochs=num_epochs,
     )
     trainer.fit(face_model, face_data_module)
 

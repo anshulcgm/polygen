@@ -4,7 +4,11 @@ import random
 
 import torch
 
-from polygen.modules.data_modules import ShapenetDataset, PolygenDataModule, CollateMethod
+from polygen.modules.data_modules import (
+    ShapenetDataset,
+    PolygenDataModule,
+    CollateMethod,
+)
 from polygen.modules.face_model import FaceModel
 from polygen.modules.vertex_model import VertexModel
 
