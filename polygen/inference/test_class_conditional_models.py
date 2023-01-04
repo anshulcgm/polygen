@@ -14,7 +14,9 @@ from hydra.utils import instantiate
 from polygen.polygen_config import VertexModelConfig, FaceModelConfig
 import polygen.utils.data_utils as data_utils
 
-VERTEX_MODEL_CHECKPOINT_FILE = "/srv/share2/aahluwalia30/polygen/lightning_logs/version_491089/checkpoints/trained_vertex_model.ckpt"
+VERTEX_MODEL_CHECKPOINT_FILE = (
+    "/srv/share2/aahluwalia30/polygen/lightning_logs/version_491089/checkpoints/trained_vertex_model.ckpt"
+)
 
 
 def sample_from_vertex_model(
@@ -25,7 +27,10 @@ def sample_from_vertex_model(
     vertex_model.eval()
     with torch.no_grad():
         vertex_samples = vertex_model.sample(
-            context=context, num_samples=num_samples, only_return_complete=False, max_sample_length=200
+            context=context,
+            num_samples=num_samples,
+            only_return_complete=False,
+            max_sample_length=200,
         )
     return vertex_samples
 
@@ -69,25 +74,28 @@ def write_vertices_to_obj_files(samples: Dict[str, torch.Tensor], directory_name
         save_path = os.path.join(directory_name, f"{i}.obj")
         save_obj(save_path, curr_verts, curr_faces)
 
+
 def plot_vertices(samples: Dict[str, torch.Tensor]) -> None:
     """Plot generated vertices using matplotlib"""
     vertices = samples["vertices"]
     num_vertices = samples["num_vertices"]
     mesh_list = []
     for i in range(vertices.shape[0]):
-        curr_verts = vertices[i, :num_vertices[i]].numpy()
-        mesh_list.append({'vertices': curr_verts})
-    
-    data_utils.plot_meshes(mesh_list, ax_lims = 0.5)
-    plt.savefig('generated_meshes.png')
+        curr_verts = vertices[i, : num_vertices[i]].numpy()
+        mesh_list.append({"vertices": curr_verts})
+
+    data_utils.plot_meshes(mesh_list, ax_lims=0.5)
+    plt.savefig("generated_meshes.png")
+
 
 def test_vertex_model(config_name: str) -> None:
     """Intitializes vertex model and samples from it"""
-    vertex_model_config = load_config(config_name=config_name, vertex_config = True)
+    vertex_model_config = load_config(config_name=config_name, vertex_config=True)
     model = load_vertex_model(vertex_model_config)
     context = {"class_label": torch.Tensor([0, 1, 2, 3])}
     samples = sample_from_vertex_model(model, context)
     plot_vertices(samples)
 
+
 if __name__ == "__main__":
-    test_vertex_model(config_name = "vertex_model_config_1231.yaml")
+    test_vertex_model(config_name="vertex_model_config_1231.yaml")
