@@ -18,17 +18,20 @@ random.seed(10)
 DATA_DIR = "/coc/scratch/aahluwalia30/shapenet/shapenetcore/ShapeNetCore"
 IMG_DATA_DIR = "/coc/scratch/aahluwalia30/shapenet/shapenetcore/shapenet-lite"
 
+
 def test_shapenet_dataset():
     dataset = ShapenetDataset(training_dir=DATA_DIR)
     dataset_len = len(dataset)
     rand_index = random.randint(0, dataset_len)
     random_object = dataset[rand_index]
 
+
 def test_img_shapenet_dataset():
-    dataset = ImageDataset(training_dir = IMG_DATA_DIR)
+    dataset = ImageDataset(training_dir=IMG_DATA_DIR)
     dataset_len = len(dataset)
     rand_index = random.randint(0, dataset_len)
     random_object = dataset[rand_index]
+
 
 def test_polygen_data_module_vertices():
     vertex_data_module = PolygenDataModule(data_dir=DATA_DIR, collate_method=CollateMethod.VERTICES, batch_size=4)
@@ -92,8 +95,9 @@ def test_polygen_data_module_faces():
     logits = face_model(train_batch)
     samples = face_model.sample(context=train_batch)
 
+
 def test_polygen_data_module_images():
-    img_data_module = PolygenDataModule(data_dir = IMG_DATA_DIR, collate_method = CollateMethod.IMAGES, batch_size = 4)
+    img_data_module = PolygenDataModule(data_dir=IMG_DATA_DIR, collate_method=CollateMethod.IMAGES, batch_size=4)
     img_data_module.setup()
 
     train_dataloader = img_data_module.train_dataloader()
@@ -112,7 +116,10 @@ def test_polygen_data_module_images():
         "num_layers": 2,
     }
 
-    img_vertex_model = ImageToVertexModel(decoder_config = transformer_config, quantization_bits = 8, use_discrete_embeddings = True, max_num_input_verts = 100)
+    img_vertex_model = ImageToVertexModel(
+        decoder_config=transformer_config,
+        quantization_bits=8,
+        use_discrete_embeddings=True,
+    )
     logits = img_vertex_model(train_batch)
     samples = img_vertex_model.sample(num_samples=4, context=train_batch)
-

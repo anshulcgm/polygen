@@ -67,9 +67,10 @@ class ShapenetDataset(Dataset):
         mesh_dict = {"vertices": vertices, "faces": faces, "class_label": class_label}
         return mesh_dict
 
+
 class ImageDataset(Dataset):
     def __init__(self, training_dir: str) -> None:
-        """Initializes Image Dataset 
+        """Initializes Image Dataset
 
         Args:
             training_dir: Where model files along with renderings are located
@@ -81,18 +82,18 @@ class ImageDataset(Dataset):
     def __len__(self) -> int:
         """How many renderings we have"""
         return len(self.images)
-    
+
     def __getitem__(self, idx) -> Dict[str, torch.Tensor]:
         """Gets image object along with associated mesh
 
         Args:
             idx: Index of image to retrieve
-        
+
         Returns:
             mesh_dict: Dictionary containing vertices, faces of .obj file and image tensor
         """
         img_file = self.images[idx]
-        folder_path = "/".join(img_file.split('/')[:-2])
+        folder_path = "/".join(img_file.split("/")[:-2])
         model_file = os.path.sep.join([folder_path, "models", "model_normalized.obj"])
         verts, faces, _ = load_obj(model_file)
         faces = faces.verts_idx
@@ -102,8 +103,9 @@ class ImageDataset(Dataset):
         faces = data_utils.flatten_faces(faces)
         img = read_image(img_file) / 255.0
         img = self.resize_transform(img)
-        mesh_dict = {'vertices': vertices, "faces": faces, "image": img}
+        mesh_dict = {"vertices": vertices, "faces": faces, "image": img}
         return mesh_dict
+
 
 class CollateMethod(Enum):
     VERTICES = 1
@@ -158,7 +160,7 @@ class PolygenDataModule(pl.LightningDataModule):
                 all_files=all_files,
                 label_dict=label_dict,
             )
-        
+
         self.training_split = training_split
         self.val_split = val_split
         self.quantization_bits = quantization_bits
@@ -269,7 +271,7 @@ class PolygenDataModule(pl.LightningDataModule):
 
         Args:
             ds: List of dictionaries where each dictionary has information about a 3D object
-        
+
         Returns:
             img_vertex_model_batch: A single dictionary which represents the whole batch
         """
@@ -292,13 +294,9 @@ class PolygenDataModule(pl.LightningDataModule):
             vertices = element["vertices"]
             initial_vertex_size = vertices.shape[0]
             padding_size = max_vertices - initial_vertex_size
-            vertices_permuted = torch.stack(
-                [vertices[..., 2], vertices[..., 1], vertices[..., 0]], dim=-1
-            )
+            vertices_permuted = torch.stack([vertices[..., 2], vertices[..., 1], vertices[..., 0]], dim=-1)
             curr_vertices_flat = vertices_permuted.reshape([-1])
-            vertices_flat[i] = F.pad(curr_vertices_flat + 1, [0, padding_size * 3 + 1])[
-                None
-            ]
+            vertices_flat[i] = F.pad(curr_vertices_flat + 1, [0, padding_size * 3 + 1])[None]
 
             vertices_flat_mask[i] = torch.zeros_like(vertices_flat[i], dtype=torch.float32)
             vertices_flat_mask[i, : initial_vertex_size * 3 + 1] = 1

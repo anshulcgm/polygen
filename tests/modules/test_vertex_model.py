@@ -82,7 +82,7 @@ def test_img_vertex_model_sample():
         "layer_norm": True,
         "num_layers": 2,
     }
-    
+
     img_vertex_model = ImageToVertexModel(
         decoder_config=decoder_config,
         quantization_bits=8,
