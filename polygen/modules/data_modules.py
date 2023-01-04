@@ -8,6 +8,8 @@ from typing import List, Dict, Optional
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
+from torchvision.io import read_image
+import torchvision.transforms as T
 from pytorch3d.io import load_obj
 import pytorch_lightning as pl
 
@@ -65,10 +67,48 @@ class ShapenetDataset(Dataset):
         mesh_dict = {"vertices": vertices, "faces": faces, "class_label": class_label}
         return mesh_dict
 
+class ImageDataset(Dataset):
+    def __init__(self, training_dir: str) -> None:
+        """Initializes Image Dataset 
+
+        Args:
+            training_dir: Where model files along with renderings are located
+        """
+        self.training_dir = training_dir
+        self.images = glob.glob(f"{self.training_dir}/*/*/renderings/*.jpeg")
+        self.resize_transform = T.Resize((256, 256))
+
+    def __len__(self) -> int:
+        """How many renderings we have"""
+        return len(self.images)
+    
+    def __getitem__(self, idx) -> Dict[str, torch.Tensor]:
+        """Gets image object along with associated mesh
+
+        Args:
+            idx: Index of image to retrieve
+        
+        Returns:
+            mesh_dict: Dictionary containing vertices, faces of .obj file and image tensor
+        """
+        img_file = self.images[idx]
+        folder_path = "/".join(img_file.split('/')[:-2])
+        model_file = os.path.sep.join([folder_path, "models", "model_normalized.obj"])
+        verts, faces, _ = load_obj(model_file)
+        faces = faces.verts_idx
+        vertices = data_utils.center_vertices(verts)
+        vertices = data_utils.normalize_vertices_scale(vertices)
+        vertices, faces, _ = data_utils.quantize_process_mesh(vertices, faces)
+        faces = data_utils.flatten_faces(faces)
+        img = read_image(img_file) / 255.0
+        img = self.resize_transform(img)
+        mesh_dict = {'vertices': vertices, "faces": faces, "image": img}
+        return mesh_dict
 
 class CollateMethod(Enum):
     VERTICES = 1
     FACES = 2
+    IMAGES = 3
 
 
 class PolygenDataModule(pl.LightningDataModule):
@@ -108,12 +148,17 @@ class PolygenDataModule(pl.LightningDataModule):
 
         self.data_dir = data_dir
         self.batch_size = batch_size
-        self.shapenet_dataset = ShapenetDataset(
-            self.data_dir,
-            default_shapenet=default_shapenet,
-            all_files=all_files,
-            label_dict=label_dict,
-        )
+
+        if collate_method == CollateMethod.IMAGES:
+            self.shapenet_dataset = ImageDataset(self.data_dir)
+        else:
+            self.shapenet_dataset = ShapenetDataset(
+                self.data_dir,
+                default_shapenet=default_shapenet,
+                all_files=all_files,
+                label_dict=label_dict,
+            )
+        
         self.training_split = training_split
         self.val_split = val_split
         self.quantization_bits = quantization_bits
@@ -125,6 +170,8 @@ class PolygenDataModule(pl.LightningDataModule):
             self.collate_fn = self.collate_vertex_model_batch
         elif collate_method == CollateMethod.FACES:
             self.collate_fn = self.collate_face_model_batch
+        elif collate_method == CollateMethod.IMAGES:
+            self.collate_fn = self.collate_img_model_batch
 
     def collate_vertex_model_batch(self, ds: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
         """Applying padding to different length vertex sequences so we can batch them
@@ -216,6 +263,52 @@ class PolygenDataModule(pl.LightningDataModule):
         face_model_batch["vertices_mask"] = face_vertices_mask
         face_model_batch["faces_mask"] = faces_mask
         return face_model_batch
+
+    def collate_img_model_batch(self, ds: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+        """Applies padding to different length vertex sequences and collects images for batching
+
+        Args:
+            ds: List of dictionaries where each dictionary has information about a 3D object
+        
+        Returns:
+            img_vertex_model_batch: A single dictionary which represents the whole batch
+        """
+        img_vertex_model_batch = {}
+        num_vertices_list = [shape_dict["vertices"].shape[0] for shape_dict in ds]
+        max_vertices = max(num_vertices_list)
+        num_elements = len(ds)
+        vertices_flat = torch.zeros([num_elements, max_vertices * 3 + 1])
+        vertices_flat_mask = torch.zeros_like(vertices_flat)
+        images = torch.zeros(
+            [
+                num_elements,
+                ds[0]["image"].shape[0],
+                ds[0]["image"].shape[1],
+                ds[0]["image"].shape[2],
+            ]
+        )
+
+        for i, element in enumerate(ds):
+            vertices = element["vertices"]
+            initial_vertex_size = vertices.shape[0]
+            padding_size = max_vertices - initial_vertex_size
+            vertices_permuted = torch.stack(
+                [vertices[..., 2], vertices[..., 1], vertices[..., 0]], dim=-1
+            )
+            curr_vertices_flat = vertices_permuted.reshape([-1])
+            vertices_flat[i] = F.pad(curr_vertices_flat + 1, [0, padding_size * 3 + 1])[
+                None
+            ]
+
+            vertices_flat_mask[i] = torch.zeros_like(vertices_flat[i], dtype=torch.float32)
+            vertices_flat_mask[i, : initial_vertex_size * 3 + 1] = 1
+
+            images[i] = element["image"]
+
+        img_vertex_model_batch["vertices_flat"] = vertices_flat
+        img_vertex_model_batch["vertices_flat_mask"] = vertices_flat_mask
+        img_vertex_model_batch["image"] = images
+        return img_vertex_model_batch
 
     def setup(self, stage: Optional = None) -> None:
         """Pytorch Lightning Data Module setup method"""
