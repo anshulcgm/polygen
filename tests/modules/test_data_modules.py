@@ -97,7 +97,12 @@ def test_polygen_data_module_faces():
 
 
 def test_polygen_data_module_images():
-    img_data_module = PolygenDataModule(data_dir=IMG_DATA_DIR, collate_method=CollateMethod.IMAGES, batch_size=4)
+    img_data_module = PolygenDataModule(
+        data_dir=IMG_DATA_DIR,
+        use_image_dataset=True,
+        collate_method=CollateMethod.IMAGES,
+        batch_size=4,
+    )
     img_data_module.setup()
 
     train_dataloader = img_data_module.train_dataloader()

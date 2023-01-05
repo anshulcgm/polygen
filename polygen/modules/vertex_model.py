@@ -413,6 +413,9 @@ class ImageToVertexModel(VertexModel):
         quantization_bits: int,
         use_discrete_embeddings: bool = True,
         max_num_input_verts: int = 2500,
+        learning_rate: float = 3e-4,
+        step_size: int = 5000,
+        gamma: float = 0.9995,
     ) -> None:
         """Initializes the resnet module along with an embedder
 
@@ -421,14 +424,22 @@ class ImageToVertexModel(VertexModel):
             quantization_bits: Number of quantization bits used in mesh preprocessing
             use_discrete_embeddings: Whether or not we're working with quantized vertices
             max_num_input_verts: Maximum number of vertices. Used for learned position embeddings.
+            learning_rate: Learning rate for adam optimizer
+            step_size: How often to use lr scheduler
+            gamma: Decay rate for lr scheduler
         """
         super(ImageToVertexModel, self).__init__(
             decoder_config=decoder_config,
             quantization_bits=quantization_bits,
             max_num_input_verts=max_num_input_verts,
             use_discrete_embeddings=use_discrete_embeddings,
+            learning_rate=learning_rate,
+            step_size=step_size,
+            gamma=gamma,
         )
         self.res_net = PolygenResnet()
+        for param in self.res_net.parameters():
+            param.requires_grad = False
         self.embedder = nn.Linear(2, self.embedding_dim)
 
     def _prepare_context(self, context: Dict[str, torch.Tensor]) -> Tuple[None, torch.Tensor]:

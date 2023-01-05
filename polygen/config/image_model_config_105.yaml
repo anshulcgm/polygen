@@ -1,0 +1,25 @@
+VertexModelConfig:
+  _target_: polygen.polygen_config.VertexModelConfig
+  accelerator: ddp
+  dataset_path: "/coc/scratch/aahluwalia30/shapenet/shapenetcore/shapenet-lite/"
+  batch_size: 12
+  training_split: 0.80
+  val_split: 0.10
+  apply_random_shift: True
+  decoder_config: 
+    {
+      "hidden_size": 256, 
+      "fc_size": 1024, 
+      "num_layers": 18, 
+      "dropout_rate": 0.2
+    }
+  quantization_bits: 8
+  class_conditional: False
+  num_classes: 4
+  max_num_input_verts: 800
+  use_discrete_embeddings: True
+  learning_rate: 3e-4
+  step_size: 5000
+  gamma: 0.995
+  training_steps: 200000
+  image_model: True

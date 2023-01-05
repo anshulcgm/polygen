@@ -1,3 +1,5 @@
+import pdb
+
 import torch
 import pytorch_lightning as pl
 
@@ -7,9 +9,9 @@ from hydra.utils import instantiate
 from polygen.polygen_config import VertexModelConfig
 
 
-def main() -> None:
+def main(config_name: str) -> None:
     with hydra.initialize_config_module(config_module="polygen.config"):
-        cfg = hydra.compose(config_name="vertex_model_config_1231.yaml")
+        cfg = hydra.compose(config_name=config_name)
         vertex_model_config = instantiate(cfg.VertexModelConfig)
 
     vertex_data_module = vertex_model_config.vertex_data_module
@@ -29,4 +31,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # main(config_name = "vertex_model_config_1231.yaml") #To train class conditioned model
+    main(config_name="image_model_config_105.yaml")  # To train image conditioned model

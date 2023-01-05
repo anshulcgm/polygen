@@ -1,8 +1,8 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import torch
 
-from polygen.modules.vertex_model import VertexModel
+from polygen.modules.vertex_model import VertexModel, ImageToVertexModel
 from polygen.modules.face_model import FaceModel
 from polygen.modules.data_modules import PolygenDataModule, CollateMethod
 
@@ -26,6 +26,7 @@ class VertexModelConfig:
         step_size: int,
         gamma: float,
         training_steps: int,
+        image_model: bool = False,
     ) -> None:
         """Initializes vertex model and vertex data module
 
@@ -46,6 +47,7 @@ class VertexModelConfig:
             step_size: How often to use lr scheduler
             gamma: Decay rate for lr scheduler
             training_steps: How many total steps we want to train for
+            image_model: Whether we're training the image model or class-conditioned model
         """
 
         self.num_gpus = torch.cuda.device_count()
@@ -55,26 +57,41 @@ class VertexModelConfig:
         else:
             self.batch_size = batch_size
 
+        if image_model:
+            collate_method = CollateMethod.IMAGES
+            self.vertex_model = ImageToVertexModel(
+                decoder_config = decoder_config, 
+                quantization_bits = quantization_bits,
+                use_discrete_embeddings = use_discrete_embeddings,
+                max_num_input_verts = max_num_input_verts,
+                learning_rate = learning_rate,
+                step_size = step_size,
+                gamma = gamma,
+            )
+        else:
+            collate_method = CollateMethod.VERTICES
+            self.vertex_model = VertexModel(
+                decoder_config=decoder_config,
+                quantization_bits=quantization_bits,
+                class_conditional=class_conditional,
+                num_classes=num_classes,
+                max_num_input_verts=max_num_input_verts,
+                use_discrete_embeddings=use_discrete_embeddings,
+                learning_rate=learning_rate,
+                step_size=step_size,
+                gamma=gamma,
+            )
+
+
         self.vertex_data_module = PolygenDataModule(
             data_dir=dataset_path,
             batch_size=self.batch_size,
-            collate_method=CollateMethod.VERTICES,
+            collate_method=collate_method,
             training_split=training_split,
             val_split=val_split,
             quantization_bits=quantization_bits,
+            use_image_dataset = image_model,
             apply_random_shift_vertices=apply_random_shift,
-        )
-
-        self.vertex_model = VertexModel(
-            decoder_config=decoder_config,
-            quantization_bits=quantization_bits,
-            class_conditional=class_conditional,
-            num_classes=num_classes,
-            max_num_input_verts=max_num_input_verts,
-            use_discrete_embeddings=use_discrete_embeddings,
-            learning_rate=learning_rate,
-            step_size=step_size,
-            gamma=gamma,
         )
 
         self.training_steps = training_steps
