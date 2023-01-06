@@ -9,4 +9,4 @@
 #SBATCH --requeue
 #SBATCH --account=overcap
 
-srun python -u polygen/training/train_face_model_class_conditional.py
+srun python -u polygen/training/train_face_model.py
