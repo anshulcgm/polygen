@@ -6,6 +6,5 @@ lightning_logs/
 *.txt
 *.err
 *.out
-*.png
 *.pth
 *.ckpt
