@@ -125,6 +125,7 @@ class PolygenDataModule(pl.LightningDataModule):
         default_shapenet: bool = True,
         quantization_bits: int = 8,
         use_image_dataset: bool = False,
+        img_extension: str = "jpeg",
         all_files: Optional[List[str]] = None,
         label_dict: Optional[Dict[str, int]] = None,
         apply_random_shift_vertices: bool = True,
@@ -141,6 +142,7 @@ class PolygenDataModule(pl.LightningDataModule):
             default_shapenet: Whether or not we are using the default shapenet data structure
             quantization_bits: How many bits we are using to quantize the vertices
             use_image_dataset: Whether to use the image shapenet dataset or the regular shapenet dataset
+            img_extension: Whether the images are .jpeg or .png files
             all_files: List of all .obj files (needs to be provided if default_shapnet = false)
             label_dict: Mapping of .obj file to class label (needs to be provided if default_shapnet = false)
             apply_random_shift_vertices: Whether or not we're applying random shift to vertices for vertex model
@@ -149,10 +151,11 @@ class PolygenDataModule(pl.LightningDataModule):
         """
         super().__init__()
 
-        # If we are using the image dataset, then the collate method should be for images
-        assert (use_image_dataset and collate_method == CollateMethod.IMAGES) or (
-            (not use_image_dataset) and (not collate_method == CollateMethod.IMAGES)
-        )
+        # If we are using the image dataset, then the collate method should not be for 
+        # class-conditioned vertices. It should be for image-conditioned vertices
+        # or vertex-conditioned faces
+
+        assert (use_image_dataset and (not collate_method == CollateMethod.VERTICES))
 
         assert (training_split + val_split) <= 1.0
 
@@ -160,7 +163,7 @@ class PolygenDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
 
         if use_image_dataset:
-            self.shapenet_dataset = ImageDataset(self.data_dir)
+            self.shapenet_dataset = ImageDataset(training_dir = self.data_dir, image_extension = img_extension)
         else:
             self.shapenet_dataset = ShapenetDataset(
                 self.data_dir,
