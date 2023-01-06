@@ -5,6 +5,7 @@ __pycache__/
 lightning_logs/
 *.txt
 *.err
+*.png
 *.out
 *.pth
 *.ckpt
