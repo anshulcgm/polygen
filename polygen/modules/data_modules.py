@@ -69,14 +69,15 @@ class ShapenetDataset(Dataset):
 
 
 class ImageDataset(Dataset):
-    def __init__(self, training_dir: str) -> None:
+    def __init__(self, training_dir: str, image_extension: str = "jpeg") -> None:
         """Initializes Image Dataset
 
         Args:
             training_dir: Where model files along with renderings are located
+            image_extension: Whether it's a .png or .jpeg or other type of file
         """
         self.training_dir = training_dir
-        self.images = glob.glob(f"{self.training_dir}/*/*/renderings/*.jpeg")
+        self.images = glob.glob(f"{self.training_dir}/*/*/renderings/*.{image_extension}")
         self.resize_transform = T.Resize((256, 256))
 
     def __len__(self) -> int:
