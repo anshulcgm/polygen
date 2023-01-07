@@ -151,19 +151,17 @@ class PolygenDataModule(pl.LightningDataModule):
         """
         super().__init__()
 
-        # If we are using the image dataset, then the collate method should not be for 
+        # If we are using the image dataset, then the collate method should not be for
         # class-conditioned vertices. It should be for image-conditioned vertices
         # or vertex-conditioned faces
-
-        assert (use_image_dataset and (not collate_method == CollateMethod.VERTICES))
-
+        assert (use_image_dataset and (not collate_method == CollateMethod.VERTICES)) or (not use_image_dataset)
         assert (training_split + val_split) <= 1.0
 
         self.data_dir = data_dir
         self.batch_size = batch_size
 
         if use_image_dataset:
-            self.shapenet_dataset = ImageDataset(training_dir = self.data_dir, image_extension = img_extension)
+            self.shapenet_dataset = ImageDataset(training_dir=self.data_dir, image_extension=img_extension)
         else:
             self.shapenet_dataset = ShapenetDataset(
                 self.data_dir,
