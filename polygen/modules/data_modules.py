@@ -12,6 +12,7 @@ from torchvision.io import read_image
 import torchvision.transforms as T
 from pytorch3d.io import load_obj
 import pytorch_lightning as pl
+from PIL import Image
 
 import polygen.utils.data_utils as data_utils
 
@@ -78,7 +79,8 @@ class ImageDataset(Dataset):
         """
         self.training_dir = training_dir
         self.images = glob.glob(f"{self.training_dir}/*/*/renderings/*.{image_extension}")
-        self.resize_transform = T.Resize((256, 256))
+
+        self.transforms = T.Compose([T.ToTensor(), T.Resize((256))])
 
     def __len__(self) -> int:
         """How many renderings we have"""
@@ -98,12 +100,13 @@ class ImageDataset(Dataset):
         model_file = os.path.sep.join([folder_path, "models", "model_normalized.obj"])
         verts, faces, _ = load_obj(model_file)
         faces = faces.verts_idx
+        verts = verts[:, [2, 0, 1]]
         vertices = data_utils.center_vertices(verts)
         vertices = data_utils.normalize_vertices_scale(vertices)
         vertices, faces, _ = data_utils.quantize_process_mesh(vertices, faces)
         faces = data_utils.flatten_faces(faces)
-        img = read_image(img_file) / 255.0
-        img = self.resize_transform(img)
+        img = Image.open(img_file).convert('RGB')
+        img = self.transforms(img)
         mesh_dict = {"vertices": vertices, "faces": faces, "image": img}
         return mesh_dict
 
