@@ -27,8 +27,9 @@ def main(config_name: str) -> None:
         gpus=vertex_model_config.num_gpus,
         max_epochs=num_epochs,
         resume_from_checkpoint=None,
+        fast_dev_run = True,
     )
-    trainer.fit(vertex_model, vertex_data_module)
+    trainer.fit(model = vertex_model, datamodule = vertex_data_module)
 
 
 if __name__ == "__main__":
