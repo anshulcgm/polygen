@@ -36,7 +36,7 @@ a stopping token or the max sequence length has been reached.
 ### Inference Procedure
 When trying to generate meshes that are not in the shapenet dataset, we feed the context (usually a batch of images) into the vertex model which then autoregressively samples the vertices. We then feed those vertices into the sampling method of the face model which proceeds to generate a set of faces for the given vertices. It would be interesting to experiment if adding image context to the face model could improve the the sampling of the faces.
 
-![Joint Sampling Procedure](images/combined_sampling.png)
+![Joint Sampling Procedure](images/joint_sampling.png)
 <figcaption align="center">Joint sampling procedure from <a href="https://arxiv.org/pdf/2002.10880.pdf">Polygen</a></b></figcaption>
 <br></br>
 
