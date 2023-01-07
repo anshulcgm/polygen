@@ -16,6 +16,10 @@ truth vertices and the probabilities outputted by the distribution for the groun
 During sampling, the model receives the context which can be either the class labels or images representing the meshes. It then autoregressively generates
 the vertices coordinate by coordinate until it generates a stopping token or the max sequence length has been reached. 
 
+![Vertex Model Training](images/vertex_model_training.png)
+<figcaption align="center"><b>Forward pass of vertex model training procedure from <a href="https://arxiv.org/pdf/2002.10880.pdf">Polygen</a></b></figcaption>
+<br></br>
+
 ### Face Model
 The face model is primarily conditioned on vertices, while it can be conditioned on class-labels, in this implementation we only condition it on dequantized
 vertices. Faces are represented as sequences of vertex indices in which two indices next to one another represent connectivity between those two vertices. 
@@ -24,6 +28,17 @@ similar to the vertex model.
 
 During sampling, the model receives a batch of vertices and the associated vertex masks and then autoregressively generates vertex indices until it generates 
 a stopping token or the max sequence length has been reached. 
+
+![Face Model Training](images/face_model_training.png)
+<figcaption align="center"><b>Forward pass of face model training procedure from <a href="https://arxiv.org/pdf/2002.10880.pdf">Polygen</a></b></figcaption>
+<br></br>
+
+### Inference Procedure
+When trying to generate meshes that are not in the shapenet dataset, we feed the context (usually a batch of images) into the vertex model which then autoregressively samples the vertices. We then feed those vertices into the sampling method of the face model which proceeds to generate a set of faces for the given vertices. It would be interesting to experiment if adding image context to the face model could improve the the sampling of the faces.
+
+![Joint Sampling Procedure](images/combined_sampling.png)
+<figcaption align="center">Joint sampling procedure from <a href="https://arxiv.org/pdf/2002.10880.pdf">Polygen</a></b></figcaption>
+<br></br>
 
 ## Results
 
