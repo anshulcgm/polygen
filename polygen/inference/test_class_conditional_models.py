@@ -18,6 +18,7 @@ VERTEX_MODEL_CHECKPOINT_FILE = (
     "/srv/share2/aahluwalia30/polygen/lightning_logs/version_491089/checkpoints/trained_vertex_model.ckpt"
 )
 
+FACE_MODEL_CHECKPOINT_FILE = "/srv/share2/aahluwalia30/polygen/lightning_logs/version_494214/checkpoints/trained_face_model.ckpt"
 
 def sample_from_vertex_model(
     vertex_model: pl.LightningModule, context: Dict[str, torch.Tensor]
@@ -30,10 +31,16 @@ def sample_from_vertex_model(
             context=context,
             num_samples=num_samples,
             only_return_complete=False,
-            max_sample_length=200,
+            max_sample_length=800,
         )
     return vertex_samples
 
+def sample_from_face_model(face_model: pl.LightningModule, context: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    face_model.eval()
+    with torch.no_grad():
+        face_samples = face_model.sample(context = context, max_sample_length = 2800)
+    
+    return face_samples
 
 def load_vertex_model(config: VertexModelConfig) -> pl.LightningModule:
     """Loads vertex model from config object and .ckpt file"""
@@ -49,6 +56,21 @@ def load_vertex_model(config: VertexModelConfig) -> pl.LightningModule:
     )
     return model
 
+def load_face_model(config: FaceModelConfig) -> pl.LightningModule:
+    """Loads face model from config object and .ckpt file"""
+    model = config.face_model
+    model.load_from_checkpoint(
+        FACE_MODEL_CHECKPOINT_FILE,
+        encoder_config = model.encoder_config,
+        decoder_config = model.decoder_config,
+        class_conditional = model.class_conditional,
+        num_classes = model.num_classes,
+        decoder_cross_attention = model.decoder_cross_attention,
+        use_discrete_vertex_embeddings = model.use_discrete_vertex_embeddings,
+        quantization_bits = model.quantization_bits,
+        max_seq_length = model.max_seq_length
+    )
+    return model
 
 def load_config(config_name: str, vertex_config: bool) -> Union[VertexModelConfig, FaceModelConfig]:
     """Loads config object using hydra"""

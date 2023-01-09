@@ -45,6 +45,8 @@ class FaceModel(pl.LightningModule):
             gamma: Decay rate for lr scheduler
         """
         super(FaceModel, self).__init__()
+        self.encoder_config = encoder_config
+        self.decoder_config = decoder_config
         self.embedding_dim = decoder_config["hidden_size"]
         self.class_conditional = class_conditional
         self.num_classes = num_classes
