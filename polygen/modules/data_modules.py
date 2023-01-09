@@ -105,7 +105,7 @@ class ImageDataset(Dataset):
         vertices = data_utils.normalize_vertices_scale(vertices)
         vertices, faces, _ = data_utils.quantize_process_mesh(vertices, faces)
         faces = data_utils.flatten_faces(faces)
-        img = Image.open(img_file).convert('RGB')
+        img = Image.open(img_file).convert("RGB")
         img = self.transforms(img)
         mesh_dict = {"vertices": vertices, "faces": faces, "image": img}
         return mesh_dict
