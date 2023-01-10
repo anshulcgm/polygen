@@ -43,7 +43,7 @@ When trying to generate meshes that are not in the shapenet dataset, we feed the
 ## Results
 
 Due to compute limits, I train on toy datasets for proof of concept and on different subsets of the shapenet dataset. For results on the toy datasets
-check out the pdfs in the main directory ```sample_class_condition_train.pdf``` and ```sample_image_condition_train.pdf``` (coming soon!). The models for
+check out the pdfs in the main directory ```sample_class_condition_train.pdf``` and ```sample_image_condition_train.pdf```. The models for
 the subsets of shapenets are currently being trained and I will upload some of the meshes that they generate once they are done.
 
 
