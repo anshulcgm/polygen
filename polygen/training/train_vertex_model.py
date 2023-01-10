@@ -26,8 +26,6 @@ def main(config_name: str) -> None:
         accelerator=vertex_model_config.accelerator,
         gpus=vertex_model_config.num_gpus,
         max_epochs=num_epochs,
-        resume_from_checkpoint=None,
-        fast_dev_run=True,
     )
     trainer.fit(model=vertex_model, datamodule=vertex_data_module)
 

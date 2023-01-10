@@ -48,6 +48,38 @@ def random_shift(vertices: torch.Tensor, shift_factor: float = 0.25) -> torch.Te
     vertices += shift
     return vertices
 
+def write_obj(
+    vertices: np.ndarray,
+    faces: List[List[int]],
+    file_path: str,
+    transpose: bool = True,
+    scale: float = 1.0,
+) -> None:
+    """Writes vertices and faces to .obj file to represent 3D object
+    Args:
+        vertices: array of shape (num_vertices, 3) representing vertex indices
+        faces: List of vertex indices representing vertex connectivity
+        file_path: Where to save .obj file
+        transpose: boolean representing whether to change traditional order of (x, y, z)
+        scale: Factor by which to scale vertices
+    """
+    if transpose:
+        vertices = vertices[:, [1, 2, 0]]
+    vertices *= scale
+    if faces is not None:
+        if min(min(faces)) == 0:
+            f_add = 1
+        else:
+            f_add = 0
+    with open(file_path, "w") as f:
+        for v in vertices:
+            f.write("v {} {} {}\n".format(v[0], v[1], v[2]))
+        for face in faces:
+            line = "f"
+            for i in face:
+                line += " {}".format(i + f_add)
+            line += "\n"
+            f.write(line)
 
 def quantize_verts(verts: torch.Tensor, n_bits: int = 8) -> torch.Tensor:
     """Convert floating point vertices to discrete values in [0, 2 ** n_bits - 1]

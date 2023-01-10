@@ -147,6 +147,29 @@ def write_vertices_to_obj_files(samples: Dict[str, torch.Tensor], directory_name
         save_path = os.path.join(directory_name, f"{i}.obj")
         save_obj(save_path, curr_verts, curr_faces)
 
+def write_vertices_and_faces_to_obj(vertex_samples: Dict[str, torch.Tensor], face_samples: Dict[str, torch.Tensor], directory_name: str) -> None:
+    """Write generated vertices and faces to .obj files
+
+    Args:
+        vertex_samples: Generated samples from vertex model
+        face_samples: Generated samples from face model
+        directory_name: Where to save generated samples
+    """
+    if not os.path.exists(directory_name):
+        os.makedirs(directory_name)
+    
+    vertices = vertex_samples["vertices"]
+    num_vertices = vertex_samples["num_vertices"]
+    faces = face_samples["faces"]
+    num_face_indices = face_samples["num_face_indices"]
+    num_objects = vertices.shape[0]
+    mesh_list = []
+    for i in range(num_objects):
+        curr_verts = vertices[i, :num_vertices[i]].numpy()
+        curr_faces = faces[i, :num_face_indices[i]].numpy()
+        curr_faces = data_utils.unflatten_faces(curr_faces)
+        save_path = os.path.join(directory_name, f"{i}.obj")
+        data_utils.write_obj(curr_verts, curr_faces, save_path)
 
 def plot_vertices(samples: Dict[str, torch.Tensor]) -> None:
     """Plot generated vertices using matplotlib
@@ -177,11 +200,15 @@ def plot_vertices_and_faces(vertex_samples: Dict[str, torch.Tensor], face_sample
     faces = face_samples["faces"]
     num_face_indices = face_samples["num_face_indices"]
     num_objects = vertices.shape[0]
-
+    mesh_list = []
     for i in range(num_objects):
-        curr_verts = vertices[i, : num_vertices[i]]
-        curr_faces = faces[i, : num_face_indices[i]]
+        curr_verts = vertices[i, : num_vertices[i]].numpy()
+        curr_faces = faces[i, : num_face_indices[i]].numpy()
+        curr_faces = data_utils.unflatten_faces(curr_faces)
+        mesh_list.append({'vertices': curr_verts, 'faces': curr_faces})
 
+    data_utils.plot_meshes(mesh_list, ax_lims = 0.4)
+    plt.savefig("generated_meshes_vertices_faces.png")
 
 def test_vertex_model(config_name: str) -> None:
     """Intitializes vertex model and samples from it
@@ -210,7 +237,9 @@ def joint_test_vertex_face_model(vertex_config_name: str, face_config_name: str)
     context = {"class_label": torch.arange(4)}
     vertex_samples = sample_from_vertex_model(vertex_model, context)
     face_samples = sample_from_face_model(face_model, vertex_samples)
-
+    plot_vertices_and_faces(vertex_samples, face_samples)
+    write_vertices_and_faces_to_obj(vertex_samples, face_samples, "generated_meshes/")
 
 if __name__ == "__main__":
-    test_vertex_model(config_name="vertex_model_config_1231.yaml")
+    pdb.set_trace()
+    joint_test_vertex_face_model(vertex_config_name = "vertex_model_config_1231.yaml", face_config_name="face_model_config_1231.yaml")
