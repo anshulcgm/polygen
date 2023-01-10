@@ -10,3 +10,4 @@ lightning_logs/
 *.ckpt
 sample_train.ipynb
 sample_class_condition_train.html
+sample_img_condition_train.ipynb
